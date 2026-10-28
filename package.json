@@ -1,0 +1,21 @@
+{
+  "name": "cloud-video-app",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "description": "基于 Vue 3 + Vite 的在线视频 WebApp，PC / 移动端响应式，含播放器、频道、搜索、会员与观看历史",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview --host --port 4173"
+  },
+  "dependencies": {
+    "pinia": "^2.2.6",
+    "vue": "^3.5.13",
+    "vue-router": "^4.4.5"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-vue": "^5.2.1",
+    "vite": "^6.0.11"
+  }
+}
