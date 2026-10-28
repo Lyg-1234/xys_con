@@ -478,12 +478,38 @@ onBeforeUnmount(() => {
 }
 
 @media (max-width: 600px) {
+  .tetris-main {
+    align-items: center;
+    flex-direction: column;
+    gap: 10px;
+  }
+
   .tetris-board {
-    width: min(285px, 71vw);
+    width: min(100%, 285px);
   }
 
   .tetris-info {
-    width: 80px;
+    display: grid;
+    grid-template-columns: 66px minmax(0, 1fr) 58px;
+    align-items: stretch;
+    width: min(100%, 285px);
+  }
+
+  .tetris-next {
+    padding: 6px;
+  }
+
+  .tetris-next__grid {
+    max-width: 54px;
+  }
+
+  .tetris-mini-stats div {
+    padding: 6px 8px;
+  }
+
+  .tetris-pause {
+    min-height: 100%;
+    padding: 5px;
   }
 
   .tetris-controls {

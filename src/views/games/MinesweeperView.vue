@@ -240,7 +240,7 @@ onBeforeUnmount(() => {
 
 .mine-board {
   display: grid;
-  width: min(490px, 88vw);
+  width: min(100%, 490px);
   aspect-ratio: 1;
   overflow: hidden;
   border: 2px solid var(--ink);

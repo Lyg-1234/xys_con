@@ -218,7 +218,7 @@ onBeforeUnmount(() => {
 .snake-board {
   position: relative;
   display: grid;
-  width: min(520px, 88vw);
+  width: min(100%, 520px);
   aspect-ratio: 1;
   overflow: hidden;
   border: 2px solid var(--ink);

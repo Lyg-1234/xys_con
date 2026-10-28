@@ -254,5 +254,30 @@ await page('/about', '网页游戏厅')
   await session.close()
 }
 
+for (const width of [320, 360, 390]) {
+  for (const slug of ['tetris', 'spot-difference', 'memory', 'snake', '2048', 'minesweeper']) {
+    const session = await open(`/game/${slug}`, width, 800)
+    const state = await session.evaluate(`(() => ({
+      width: document.documentElement.scrollWidth,
+      viewport: document.documentElement.clientWidth,
+      clipped: (() => {
+        const stage = document.querySelector('.game-stage');
+        if (!stage) return [];
+        const bounds = stage.getBoundingClientRect();
+        return [...stage.querySelectorAll('*')].filter((el) => {
+          const rect = el.getBoundingClientRect();
+          return rect.width > 0 && (rect.right > bounds.right + 1 || rect.left < bounds.left - 1);
+        }).slice(0, 4).map((el) => el.className?.toString() || el.tagName);
+      })()
+    }))()`)
+    log(
+      `移动端棋盘完整可见 ${width}px / ${slug}`,
+      state?.width <= state?.viewport && state?.clipped?.length === 0,
+      `${state?.width}/${state?.viewport}${state?.clipped?.length ? ` clipped=${state.clipped.join(',')}` : ''}`
+    )
+    await session.close()
+  }
+}
+
 console.log(failures ? `\n${failures} failed` : '\nFINAL CHECK PASSED')
 process.exitCode = failures ? 1 : 0

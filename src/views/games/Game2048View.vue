@@ -260,7 +260,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown))
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 9px;
-  width: min(470px, 86vw);
+  width: min(100%, 470px);
   aspect-ratio: 1;
   padding: 10px;
   border: 2px solid var(--ink);

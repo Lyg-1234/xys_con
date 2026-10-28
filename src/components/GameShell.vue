@@ -194,6 +194,7 @@ defineProps({
 .game-stage {
   display: grid;
   place-items: center;
+  min-width: 0;
   min-height: 520px;
   overflow: hidden;
   padding: 22px;
@@ -308,6 +309,8 @@ defineProps({
 
   .game-stage {
     min-height: 0;
+    width: 100%;
+    min-width: 0;
     padding: 12px;
     border-radius: 20px;
     box-shadow: 4px 4px 0 var(--ink);
