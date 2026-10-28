@@ -1,22 +1,16 @@
 {
-  "name": "cloud-video-app",
+  "name": "pixel-play-arcade",
   "private": true,
   "version": "1.0.0",
   "type": "module",
-  "description": "基于 Vue 3 + Vite 的在线视频 WebApp，PC / 移动端响应式，含播放器、频道、搜索、会员与观看历史",
+  "description": "基于 Vue 3 + Vite 的在线小游戏合集，包含俄罗斯方块、找不同、记忆配对、贪吃蛇、2048 与扫雷",
   "scripts": {
-    "predev": "node tools/import-local-media.mjs",
     "dev": "vite",
-    "prebuild": "node tools/import-local-media.mjs",
     "build": "vite build",
     "preview": "vite preview --host --port 4173",
-    "check:catalog": "node tools/check-sources.mjs",
-    "check:sources": "node tools/check-sources.mjs --network",
-    "gen:servers": "node tools/gen-archive-servers.mjs",
-    "import:media": "node tools/import-local-media.mjs"
+    "check:games": "node tools/check-games.mjs"
   },
   "dependencies": {
-    "pinia": "^2.2.6",
     "vue": "^3.5.13",
     "vue-router": "^4.4.5"
   },

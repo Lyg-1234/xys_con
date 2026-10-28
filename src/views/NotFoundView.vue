@@ -1,47 +1,57 @@
 <script setup>
-import AppIcon from '@/components/AppIcon.vue'
+import { RouterLink } from 'vue-router'
 </script>
 
 <template>
-  <div class="page">
-    <div class="container nf">
-      <div class="nf__icon"><AppIcon name="monitor" :size="52" /></div>
-      <h1>404 · 页面走丢了</h1>
-      <p class="muted">你访问的页面不存在，或者已经下架了～</p>
-      <div class="nf__ops">
-        <RouterLink to="/" class="btn btn--primary btn--lg">回到首页</RouterLink>
-        <RouterLink :to="{ name: 'channel', params: { type: 'all' } }" class="btn btn--ghost btn--lg">
-          看看片库
-        </RouterLink>
+  <div class="not-found">
+    <div class="container">
+      <div class="not-found__card panel">
+        <span class="not-found__icon">👾</span>
+        <p>404 · GAME OVER</p>
+        <h1>这一关不存在</h1>
+        <p>你可能走进了隐藏关卡，回到大厅重新选择吧。</p>
+        <RouterLink to="/" class="btn btn--primary">返回游戏大厅</RouterLink>
       </div>
     </div>
   </div>
 </template>
 
 <style scoped>
-.nf {
-  padding: 70px 20px;
+.not-found {
+  display: grid;
+  place-items: center;
+  min-height: 72vh;
+  padding: 35px 0;
+}
+
+.not-found__card {
+  max-width: 480px;
+  margin: auto;
+  padding: 46px 30px;
   text-align: center;
 }
 
-.nf__icon {
-  color: var(--text-weak);
-  display: flex;
-  justify-content: center;
-  margin-bottom: 14px;
+.not-found__icon {
+  display: block;
+  margin-bottom: 13px;
+  font-size: 68px;
+  animation: float-soft 2.4s ease-in-out infinite;
 }
 
-.nf h1 {
-  font-size: 22px;
-  font-weight: 700;
-  margin-bottom: 8px;
+.not-found__card > p:first-of-type {
+  color: var(--coral-dark);
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 0.12em;
 }
 
-.nf__ops {
-  display: flex;
-  gap: 12px;
-  justify-content: center;
-  margin-top: 24px;
-  flex-wrap: wrap;
+.not-found h1 {
+  margin-top: 5px;
+  font-size: 36px;
+}
+
+.not-found p:last-of-type {
+  margin: 8px 0 20px;
+  color: var(--muted);
 }
 </style>

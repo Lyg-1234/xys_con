@@ -4,62 +4,32 @@ const routes = [
   {
     path: '/',
     name: 'home',
-    component: () => import('@/views/HomeView.vue'),
+    component: () => import('@/views/GamesHomeView.vue'),
     meta: { title: '首页' }
   },
   {
-    path: '/channel/:type',
-    name: 'channel',
-    component: () => import('@/views/ChannelView.vue'),
-    meta: { title: '频道' }
+    path: '/games',
+    name: 'games',
+    component: () => import('@/views/AllGamesView.vue'),
+    meta: { title: '全部游戏' }
   },
   {
-    path: '/rank',
-    name: 'rank',
-    component: () => import('@/views/RankView.vue'),
+    path: '/game/:slug',
+    name: 'game',
+    component: () => import('@/views/GameRouteView.vue'),
+    meta: { title: '小游戏' }
+  },
+  {
+    path: '/leaderboard',
+    name: 'leaderboard',
+    component: () => import('@/views/LeaderboardView.vue'),
     meta: { title: '排行榜' }
   },
   {
-    path: '/search',
-    name: 'search',
-    component: () => import('@/views/SearchView.vue'),
-    meta: { title: '搜索' }
-  },
-  {
-    path: '/play/:id',
-    name: 'play',
-    component: () => import('@/views/PlayView.vue'),
-    meta: { title: '正在播放', header: false, tabBar: false, fullBleed: true }
-  },
-  {
-    path: '/vip',
-    name: 'vip',
-    component: () => import('@/views/VipView.vue'),
-    meta: { title: '会员中心' }
-  },
-  {
-    path: '/mine',
-    name: 'mine',
-    component: () => import('@/views/MineView.vue'),
-    meta: { title: '我的' }
-  },
-  {
-    path: '/history',
-    name: 'history',
-    component: () => import('@/views/HistoryView.vue'),
-    meta: { title: '观看历史', tabBar: false }
-  },
-  {
-    path: '/favorite',
-    name: 'favorite',
-    component: () => import('@/views/FavoriteView.vue'),
-    meta: { title: '我的收藏', tabBar: false }
-  },
-  {
-    path: '/settings',
-    name: 'settings',
-    component: () => import('@/views/SettingsView.vue'),
-    meta: { title: '设置', tabBar: false }
+    path: '/about',
+    name: 'about',
+    component: () => import('@/views/AboutView.vue'),
+    meta: { title: '关于' }
   },
   {
     path: '/:pathMatch(.*)*',
@@ -70,19 +40,17 @@ const routes = [
 ]
 
 const router = createRouter({
-  // 与 vite.config.js 的 base 保持一致，部署在子路径下也不会误判为 404
   history: createWebHistory(import.meta.env.BASE_URL || '/'),
   routes,
   scrollBehavior(to, from, savedPosition) {
     if (savedPosition) return savedPosition
     if (to.path === from.path) return {}
-    return { top: 0 }
+    return { top: 0, behavior: 'smooth' }
   }
 })
 
 router.afterEach((to) => {
-  const base = '云视听'
-  document.title = to.meta?.title ? `${to.meta.title} - ${base}` : base
+  document.title = to.meta?.title ? `${to.meta.title} · 闪玩游戏盒` : '闪玩游戏盒'
 })
 
 export default router
