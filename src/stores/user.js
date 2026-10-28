@@ -38,7 +38,7 @@ function mergeSettings(input) {
 
 export const useUserStore = defineStore('user', {
   state: () => ({
-    profile: persisted.profile || { name: '追剧小达人', emoji: '🎬' },
+    profile: persisted.profile || { name: '手机踹屁兜', emoji: '🎬' },
     isLogin: !!persisted.isLogin,
     isVip: !!persisted.isVip,
     vipType: persisted.vipType || '',
@@ -62,7 +62,7 @@ export const useUserStore = defineStore('user', {
   },
 
   actions: {
-    login(name = '追剧小达人') {
+    login(name = '手机踹屁兜') {
       this.isLogin = true
       this.profile = { ...this.profile, name }
     },
