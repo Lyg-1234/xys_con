@@ -13,6 +13,7 @@
  * 留空则继续使用内置片源。
  */
 import { REAL_CATALOG } from './realCatalog.js'
+import { ARCHIVE_SERVERS } from './archiveServers.js'
 import { formatDuration } from '../utils/format.js'
 
 export const CUSTOM_SOURCES = {
@@ -97,14 +98,31 @@ function matchingSources(srcs, type) {
   return matches.length ? matches : [list[0]]
 }
 
+function addDirectNodes(srcs) {
+  return Array.from(
+    new Set(
+      srcs.flatMap((src) => {
+        const direct = archiveDirectUrl(src)
+        return direct ? [direct, src] : [src]
+      })
+    )
+  )
+}
+
 /** 解析 Internet Archive 的 item 标识，用于取得与影片匹配的真实封面 */
 export function archiveIdentifier(src) {
   try {
     const url = new URL(src)
-    if (url.hostname !== 'archive.org' && url.hostname !== 'www.archive.org') return ''
     const parts = url.pathname.split('/').filter(Boolean)
-    if (parts[0] !== 'download' || !parts[1]) return ''
-    return decodeURIComponent(parts[1])
+    if (url.hostname === 'archive.org' || url.hostname === 'www.archive.org') {
+      if (parts[0] !== 'download' || !parts[1]) return ''
+      return decodeURIComponent(parts[1])
+    }
+    const itemIndex = parts.indexOf('items')
+    if (/\.archive\.org$/i.test(url.hostname) && itemIndex > -1 && parts[itemIndex + 1]) {
+      return decodeURIComponent(parts[itemIndex + 1])
+    }
+    return ''
   } catch (e) {
     return ''
   }
@@ -119,6 +137,19 @@ export function archivePosterUrl(src) {
 export function sourcePageUrl(src) {
   const identifier = archiveIdentifier(src)
   return identifier ? `https://archive.org/details/${encodeURIComponent(identifier)}` : String(src || '')
+}
+
+export function archiveDirectUrl(src) {
+  const identifier = archiveIdentifier(src)
+  const mapping = ARCHIVE_SERVERS[identifier]
+  if (!identifier || !mapping?.servers?.length) return ''
+  try {
+    const url = new URL(src)
+    const file = decodeURIComponent(url.pathname.split('/').pop() || '')
+    return `https://${mapping.servers[0]}${mapping.dir}/${encodeURIComponent(file)}`
+  } catch (e) {
+    return ''
+  }
 }
 
 export function officialSearchLinks(title) {
@@ -200,7 +231,7 @@ function enrich(raw) {
   const source = applyCustomSources(id, raw.episodes || [])
   const total = source.length
   const episodes = source.map((ep, i) => {
-    const srcs = matchingSources(ep.srcs, raw.t)
+    const srcs = addDirectNodes(matchingSources(ep.srcs, raw.t))
     return {
       no: i + 1,
       title: episodeTitle(raw, ep, i, total, unit),
