@@ -1,5 +1,5 @@
 <script setup>
-import { ref, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 
 const props = defineProps({
   video: { type: Object, required: true },
@@ -9,9 +9,10 @@ const props = defineProps({
 
 const failed = ref(false)
 const loaded = ref(false)
+const source = computed(() => (props.wide ? props.video.posterLarge : props.video.poster) || '')
 
 watch(
-  () => (props.wide ? props.video.posterLarge : props.video.poster),
+  source,
   () => {
     failed.value = false
     loaded.value = false
@@ -26,10 +27,10 @@ function onError() {
 <template>
   <div class="poster" :style="{ aspectRatio: ratio }">
     <img
-      v-if="!failed"
+      v-if="!failed && source"
       class="poster__img"
       :class="{ 'is-loaded': loaded }"
-      :src="wide ? video.posterLarge : video.poster"
+      :src="source"
       :alt="video.title"
       loading="lazy"
       decoding="async"
@@ -38,14 +39,14 @@ function onError() {
       @error="onError"
     />
     <div
-      v-if="failed"
+      v-if="failed || !source"
       class="poster__fallback"
       :style="{ backgroundImage: `linear-gradient(135deg, ${video.cover.from}, ${video.cover.to})` }"
     >
       <span class="poster__emoji">{{ video.cover.emoji }}</span>
       <span class="poster__label ellipsis-2">{{ video.title }}</span>
     </div>
-    <div v-if="!loaded && !failed" class="skeleton poster__skeleton" />
+    <div v-if="source && !loaded && !failed" class="skeleton poster__skeleton" />
   </div>
 </template>
 

@@ -12,6 +12,7 @@ npm run preview  # 预览构建产物 http://localhost:4173/xys_con/
 npm run check:catalog  # 检查片单结构、分集和重复地址
 npm run check:sources  # 联网检查全部主源与备用源
 npm run gen:servers     # 刷新 Archive 实际存储节点
+npm run import:media    # 导入自己拥有授权的本地视频
 ```
 
 > Node 版本建议 >= 18。
@@ -123,9 +124,23 @@ src/
 | 纪录片 | 星辰与人类、草原：一个民族的生存之战、山谷人家、真理与勇气、圣灵之人 |
 | 少儿 | 漫画童谣集（8 集）、卡通经典·第一辑 / 第二辑、大力水手：辛巴达、气球乐园的一天、恐龙岛历险 |
 
+### 接入自己的授权本地视频
+
+把文件按「频道 / 片名 / 分集」放入 `public/media/`，例如：
+
+```text
+public/media/
+└── 电视剧/
+    └── 我的授权剧/
+        ├── 01.mp4
+        └── 02.mp4
+```
+
+然后运行 `npm run import:media`，或直接重新执行 `npm run dev` / `npm run build`。网站会自动生成片目、分集和封面占位图。支持 `.mp4`、`.m4v`、`.webm`、`.ogv`、`.ogg`；视频文件默认不提交到 Git，避免超过 GitHub Pages 限制。请只导入自己拥有播放和分发授权的文件。
+
 ### 想换成自己的片源（例如某部国产剧）
 
-在 `src/data/videos.js` 顶部填写你有权分发的 `CUSTOM_SOURCES`，按视频 id 覆盖即可（一个地址对应一集）：
+除了本地导入，也可以在 `src/data/videos.js` 顶部填写你有权分发的 `CUSTOM_SOURCES`，按视频 id 覆盖即可（一个地址对应一集）：
 
 ```js
 export const CUSTOM_SOURCES = {

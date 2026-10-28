@@ -14,6 +14,7 @@
  */
 import { REAL_CATALOG } from './realCatalog.js'
 import { ARCHIVE_SERVERS } from './archiveServers.js'
+import { LOCAL_CATALOG } from './localCatalog.generated.js'
 import { formatDuration } from '../utils/format.js'
 
 export const CUSTOM_SOURCES = {
@@ -96,6 +97,13 @@ function matchingSources(srcs, type) {
   const primary = sourceIdentity(list[0])
   const matches = list.filter((src) => sourceIdentity(src) === primary)
   return matches.length ? matches : [list[0]]
+}
+
+function resolveLocalSource(src) {
+  const value = String(src || '')
+  if (!value.startsWith('media/')) return value
+  const base = import.meta.env.BASE_URL || '/'
+  return `${base}${value.split('/').map(encodeURIComponent).join('/')}`
 }
 
 function addDirectNodes(srcs) {
@@ -226,19 +234,19 @@ const COUNTERS = {}
 
 function enrich(raw) {
   COUNTERS[raw.t] = (COUNTERS[raw.t] || 0) + 1
-  const id = `${raw.t}-${String(COUNTERS[raw.t]).padStart(2, '0')}`
+  const id = raw.id || `${raw.t}-${String(COUNTERS[raw.t]).padStart(2, '0')}`
   const unit = UNIT[raw.t] || '集'
   const source = applyCustomSources(id, raw.episodes || [])
   const total = source.length
   const episodes = source.map((ep, i) => {
-    const srcs = addDirectNodes(matchingSources(ep.srcs, raw.t))
+    const srcs = addDirectNodes(matchingSources(ep.srcs, raw.t).map(resolveLocalSource))
     return {
       no: i + 1,
       title: episodeTitle(raw, ep, i, total, unit),
       duration: ep.duration,
       durationText: formatDuration(ep.duration),
       srcs,
-      poster: archivePosterUrl(srcs[0]) || posterUrl(`${id}-ep-${i + 1}`, 640, 360)
+      poster: raw.local ? '' : archivePosterUrl(srcs[0]) || posterUrl(`${id}-ep-${i + 1}`, 640, 360)
     }
   })
 
@@ -265,14 +273,15 @@ function enrich(raw) {
     episodeUpdated: total,
     updateText: total > 1 ? `全${total}${unit}` : '高清正片',
     totalDuration: episodes.reduce((s, e) => s + (e.duration || 0), 0),
-    poster: archivePosterUrl(episodes[0]?.srcs?.[0]) || posterUrl(id),
-    posterLarge: archivePosterUrl(episodes[0]?.srcs?.[0]) || posterUrl(id, 600, 338),
+    local: !!raw.local,
+    poster: raw.local ? '' : archivePosterUrl(episodes[0]?.srcs?.[0]) || posterUrl(id),
+    posterLarge: raw.local ? '' : archivePosterUrl(episodes[0]?.srcs?.[0]) || posterUrl(id, 600, 338),
     cover: { from: raw.c[0], to: raw.c[1], emoji: raw.e },
     episodes
   }
 }
 
-export const VIDEOS = REAL_CATALOG.map(enrich)
+export const VIDEOS = [...REAL_CATALOG, ...LOCAL_CATALOG].map(enrich)
 
 /** 按 id 获取视频 */
 export function getVideo(id) {

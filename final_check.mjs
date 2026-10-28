@@ -1,3 +1,5 @@
+import { LOCAL_CATALOG } from './src/data/localCatalog.generated.js'
+
 const SITE = process.env.SITE || 'http://127.0.0.1:4173'
 const BASE = process.env.CHROME_BASE || 'http://127.0.0.1:9222'
 const delay = (ms) => new Promise((r) => setTimeout(r, ms))
@@ -76,6 +78,20 @@ async function waitLoaded(s, max = 60000) {
     if (p && p.rs >= 1 && p.dur > 0) return p
   }
   return s.eval(P)
+}
+
+if (LOCAL_CATALOG.length) {
+  const local = LOCAL_CATALOG[0]
+  const s = await open(`/play/${local.id}`)
+  const p = await waitLoaded(s)
+  const body = await s.eval('document.body.innerText')
+  log(
+    `本地视频 ${local.title}`,
+    p.dur > 0 && p.src.includes('/media/') && body.includes(local.title),
+    `${p.title} 时长=${p.dur}s 文件=${p.src}`
+  )
+  log('本地视频页无报错', s.errors.length === 0, s.errors.join(' | ') || 'none')
+  await s.close()
 }
 
 /* 剧集播放 + 片名一致 + 交互 */
