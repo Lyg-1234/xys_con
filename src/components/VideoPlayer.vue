@@ -2,7 +2,7 @@
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import AppIcon from './AppIcon.vue'
 import DanmakuLayer from './DanmakuLayer.vue'
-import { QUALITY_LIST, resolvePlayUrl } from '@/data/videos'
+import { QUALITY_LIST, orderSources, sourceQualityKey } from '@/data/videos'
 import { clamp, formatDuration } from '@/utils/format'
 import { toast } from '@/composables/useToast'
 
@@ -22,7 +22,9 @@ const props = defineProps({
   danmaku: { type: Boolean, default: true },
   dmkOpacity: { type: Number, default: 0.85 },
   dmkSize: { type: String, default: 'md' },
-  dmkArea: { type: String, default: 'half' }
+  dmkArea: { type: String, default: 'half' },
+  sourcePage: { type: String, default: '' },
+  fallbackLinks: { type: Array, default: () => [] }
 })
 
 const emit = defineEmits([
@@ -54,6 +56,7 @@ const duration = ref(0)
 const bufferedEnd = ref(0)
 const errorText = ref('')
 const autoplayBlocked = ref(false)
+const loadingText = ref('')
 
 const uiVisible = ref(true)
 const dragging = ref(false)
@@ -71,13 +74,27 @@ const intentPlay = ref(!!props.autoplay)
 let hideTimer = null
 let flashTimer = null
 let lastReport = 0
+let loadTimer = null
+let stallTimer = null
+let watchdogTimer = null
+let loadingSince = 0
+let lastProgressAt = 0
+let pendingResume = 0
+
+const LOAD_TIMEOUT = 12000
+const STALL_TIMEOUT = 16000
 
 const sourceKey = computed(() => props.srcs.join('|'))
-const currentSrc = computed(() => resolvePlayUrl(props.srcs, props.quality, failedIndex.value))
+const orderedSrcs = computed(() => orderSources(props.srcs, props.quality))
+const currentSrc = computed(
+  () => orderedSrcs.value[Math.min(failedIndex.value, Math.max(0, orderedSrcs.value.length - 1))] || ''
+)
 const isMuted = computed(() => props.muted || props.volume <= 0)
 const qualityLabel = computed(() => {
-  const hit = QUALITY_LIST.find((q) => q.key === props.quality)
-  return hit ? hit.label.split(' ')[0] : props.quality
+  const detected = sourceQualityKey(currentSrc.value)
+  if (detected === 'original') return '原画'
+  const hit = QUALITY_LIST.find((q) => q.key === detected)
+  return hit ? hit.label.split(' ')[0] : '自动'
 })
 
 const playedPct = computed(() => {
@@ -114,16 +131,85 @@ function reportProgress(force = false) {
   emit('progress', { currentTime: currentTime.value, duration: duration.value })
 }
 
+function clearLoadTimer() {
+  if (loadTimer) clearTimeout(loadTimer)
+  loadTimer = null
+}
+
+function clearStallTimer() {
+  if (stallTimer) clearTimeout(stallTimer)
+  stallTimer = null
+}
+
+function clearPlaybackTimers() {
+  clearLoadTimer()
+  clearStallTimer()
+}
+
+function armLoadTimeout() {
+  clearLoadTimer()
+  loadingSince = Date.now()
+  loadTimer = setTimeout(() => {
+    const el = videoEl.value
+    if (!el || errorText.value || !intentPlay.value) return
+    if (el.readyState >= HTMLMediaElement.HAVE_FUTURE_DATA || currentTime.value > 0) return
+    tryNextSource('线路响应超时')
+  }, LOAD_TIMEOUT)
+}
+
+function armStallTimeout() {
+  clearStallTimer()
+  if (!intentPlay.value || errorText.value) return
+  if (!loadingSince) loadingSince = Date.now()
+  stallTimer = setTimeout(() => {
+    const el = videoEl.value
+    if (!el || errorText.value || !intentPlay.value || el.paused || el.ended) return
+    if (!waiting.value) return
+    tryNextSource('播放缓冲超时')
+  }, STALL_TIMEOUT)
+}
+
+function finishWithError(message) {
+  clearPlaybackTimers()
+  playing.value = false
+  waiting.value = false
+  loadingText.value = ''
+  errorText.value = message
+}
+
+function tryNextSource(reason = '当前线路不可用') {
+  const el = videoEl.value
+  if (!orderedSrcs.value.length) {
+    finishWithError('当前内容暂无可播放地址')
+    return
+  }
+  if (failedIndex.value >= orderedSrcs.value.length - 1) {
+    finishWithError('所有可用线路均加载失败，请稍后重试或前往正版平台')
+    return
+  }
+
+  const resume = Number.isFinite(el?.currentTime) ? el.currentTime : currentTime.value
+  failedIndex.value += 1
+  currentTime.value = resume
+  showFlash(`${reason}，正在切换备用线路`)
+  applySource(resume, true)
+}
+
 function tryPlay() {
   const el = videoEl.value
-  if (!el) return
+  if (!el || errorText.value) return
   intentPlay.value = true
   const p = el.play()
   if (p && typeof p.catch === 'function') {
-    p.catch(() => {
+    p.catch((error) => {
+      if (error?.name === 'AbortError') return
       playing.value = false
-      intentPlay.value = false
-      autoplayBlocked.value = true
+      if (error?.name === 'NotAllowedError') {
+        intentPlay.value = false
+        autoplayBlocked.value = true
+      } else if (error?.name === 'NotSupportedError' && !errorText.value) {
+        tryNextSource('浏览器不支持当前编码')
+      }
     })
   }
 }
@@ -164,37 +250,65 @@ function seekBy(delta) {
 function applySource(resumeAt) {
   const el = videoEl.value
   if (!el) return
+  clearPlaybackTimers()
+  const src = currentSrc.value
+  if (!src) {
+    finishWithError('当前内容暂无可播放地址')
+    return
+  }
   const target = clamp(Number.isFinite(resumeAt) ? resumeAt : 0, 0, 1e6)
-  el.src = currentSrc.value
+  pendingResume = target
+  playing.value = false
+  waiting.value = true
+  errorText.value = ''
+  loadingText.value = `正在加载线路 ${failedIndex.value + 1}/${orderedSrcs.value.length}`
+  el.pause()
+  el.src = src
   el.playbackRate = props.speed
   el.volume = props.volume
   el.muted = props.muted
-  waiting.value = true
-  errorText.value = ''
   try {
     el.load()
   } catch (e) {
     /* 部分浏览器 load 可能抛错，忽略 */
   }
-  if (target > 0) {
-    const onReady = () => {
-      el.removeEventListener('loadeddata', onReady)
-      seekTo(target)
-      if (intentPlay.value) tryPlay()
-    }
-    el.addEventListener('loadeddata', onReady)
-  }
+  armLoadTimeout()
 }
 
-watch([sourceKey, () => props.quality, failedIndex], ([newKey], [oldKey]) => {
-  const newSource = newKey !== oldKey
-  const resume = newSource ? props.startTime : currentTime.value
+watch(sourceKey, () => {
+  failedIndex.value = 0
   currentTime.value = 0
   duration.value = 0
   bufferedEnd.value = 0
-  if (newSource) intentPlay.value = props.autoplay
-  applySource(resume)
+  intentPlay.value = props.autoplay
+  applySource(props.startTime)
 })
+
+watch(
+  () => props.quality,
+  () => {
+    const el = videoEl.value
+    if (!el) return
+    const next = orderedSrcs.value[Math.min(failedIndex.value, orderedSrcs.value.length - 1)]
+    if (!next || next === el.currentSrc) return
+    failedIndex.value = 0
+    applySource(currentTime.value)
+  }
+)
+
+watch(
+  () => props.autoplay,
+  (v) => {
+    if (v && videoEl.value?.paused && !waiting.value && !errorText.value) tryPlay()
+  }
+)
+
+watch(
+  () => props.startTime,
+  (v) => {
+    if (v > 0 && duration.value > v + 1 && Math.abs(currentTime.value - v) > 2) seekTo(v)
+  }
+)
 
 watch(
   () => props.speed,
@@ -221,16 +335,21 @@ watch(
 function onLoadedMetadata(e) {
   const el = e.target
   duration.value = Number.isFinite(el.duration) ? el.duration : 0
-  waiting.value = false
-  if (props.startTime > 0 && currentTime.value === 0 && duration.value > props.startTime + 1) {
-    seekTo(props.startTime)
+  if (pendingResume > 0 && duration.value > pendingResume + 1) {
+    seekTo(pendingResume)
   }
+  pendingResume = 0
+  if (waiting.value) armStallTimeout()
   if (intentPlay.value) tryPlay()
 }
 
 function onTimeUpdate(e) {
-  if (dragging.value) return
-  currentTime.value = e.target.currentTime
+  const el = e.target
+  if (!dragging.value) currentTime.value = el.currentTime
+  lastProgressAt = Date.now()
+  waiting.value = false
+  clearLoadTimer()
+  clearStallTimer()
   reportProgress()
 }
 
@@ -244,11 +363,37 @@ function onProgress(e) {
 function onPlay() {
   playing.value = true
   intentPlay.value = true
+  autoplayBlocked.value = false
+  lastProgressAt = Date.now()
 }
 
 function onPause() {
   playing.value = false
+  clearStallTimer()
   reportProgress(true)
+}
+
+function onCanPlay() {
+  waiting.value = false
+  loadingText.value = ''
+  clearLoadTimer()
+  clearStallTimer()
+}
+
+function onPlaying() {
+  waiting.value = false
+  loadingText.value = ''
+  autoplayBlocked.value = false
+  lastProgressAt = Date.now()
+  clearLoadTimer()
+  clearStallTimer()
+}
+
+function onWaiting() {
+  if (!intentPlay.value || errorText.value) return
+  waiting.value = true
+  loadingText.value = '网络缓冲中，长时间无响应会自动换源'
+  armStallTimeout()
 }
 
 function onEnded() {
@@ -258,12 +403,7 @@ function onEnded() {
 }
 
 function onError() {
-  if (failedIndex.value < props.srcs.length - 1) {
-    failedIndex.value += 1
-    return
-  }
-  waiting.value = false
-  errorText.value = '视频源加载失败，请检查网络后重试'
+  tryNextSource('片源加载失败')
 }
 
 function retry() {
@@ -271,7 +411,6 @@ function retry() {
   errorText.value = ''
   intentPlay.value = true
   applySource(currentTime.value)
-  tryPlay()
 }
 
 /* ---------------- 音量 ---------------- */
@@ -309,9 +448,15 @@ function onVolDown(e) {
 function pickQuality(key) {
   qualityMenu.value = false
   if (key === props.quality) return
+  const next = orderSources(props.srcs, key)[0]
+  const detected = sourceQualityKey(next)
   emit('update:quality', key)
   const hit = QUALITY_LIST.find((q) => q.key === key)
-  toast(`已切换至「${hit ? hit.label : key}」`)
+  if (detected === key || detected === 'original') {
+    toast(`已切换至「${hit ? hit.label : key}」`)
+  } else {
+    toast('当前片源没有该清晰度，已使用可用的最高画质')
+  }
 }
 
 function pickSpeed(v) {
@@ -484,19 +629,25 @@ onMounted(() => {
   document.addEventListener('fullscreenchange', onFsChange)
   document.addEventListener('webkitfullscreenchange', onFsChange)
 
-  const el = videoEl.value
-  if (el) {
-    el.src = currentSrc.value
-    el.playbackRate = props.speed
-    el.volume = props.volume
-    el.muted = props.muted
-  }
+  watchdogTimer = setInterval(() => {
+    const el = videoEl.value
+    if (!el || document.visibilityState === 'hidden' || errorText.value) return
+    if (el.paused || el.ended || !playing.value) return
+    if (!waiting.value && Date.now() - lastProgressAt > STALL_TIMEOUT) {
+      waiting.value = true
+      tryNextSource('播放无响应')
+    }
+  }, 2000)
+
+  applySource(props.startTime)
   poke()
 })
 
 onBeforeUnmount(() => {
   if (hideTimer) clearTimeout(hideTimer)
   if (flashTimer) clearTimeout(flashTimer)
+  clearPlaybackTimers()
+  if (watchdogTimer) clearInterval(watchdogTimer)
   window.removeEventListener('pointerup', onWindowUp)
   window.removeEventListener('keydown', onKeydown)
   document.removeEventListener('click', onDocClick, true)
@@ -504,6 +655,11 @@ onBeforeUnmount(() => {
   document.removeEventListener('webkitfullscreenchange', onFsChange)
   document.documentElement.classList.remove('vp-fs-lock')
   reportProgress(true)
+  if (videoEl.value) {
+    videoEl.value.pause()
+    videoEl.value.removeAttribute('src')
+    videoEl.value.load()
+  }
 })
 
 defineExpose({ play: tryPlay, pause: pauseVideo, seekTo })
@@ -532,14 +688,14 @@ defineExpose({ play: tryPlay, pause: pauseVideo, seekTo })
       @click="togglePlay"
       @dblclick="toggleFullscreen"
       @loadedmetadata="onLoadedMetadata"
-      @loadeddata="waiting = false"
+      @loadeddata="onCanPlay"
       @timeupdate="onTimeUpdate"
       @progress="onProgress"
       @play="onPlay"
       @pause="onPause"
-      @waiting="waiting = true"
-      @playing="waiting = false"
-      @canplay="waiting = false"
+      @waiting="onWaiting"
+      @playing="onPlaying"
+      @canplay="onCanPlay"
       @ended="onEnded"
       @error="onError"
     />
@@ -555,10 +711,32 @@ defineExpose({ play: tryPlay, pause: pauseVideo, seekTo })
         <AppIcon name="play" :size="30" />
       </button>
 
-      <div v-if="waiting && playing" class="vp__spinner" />
+      <div v-if="waiting && !errorText" class="vp__spinner-wrap">
+        <div class="vp__spinner" />
+        <span>{{ loadingText || '正在加载视频…' }}</span>
+      </div>
 
       <div v-if="errorText" class="vp__error" @click.stop>
         <p>{{ errorText }}</p>
+        <div v-if="sourcePage || fallbackLinks.length" class="vp__error-links">
+          <a
+            v-if="sourcePage"
+            :href="sourcePage"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            查看原始片源页
+          </a>
+          <a
+            v-for="item in fallbackLinks"
+            :key="item.name"
+            :href="item.url"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            {{ item.name }}
+          </a>
+        </div>
         <button type="button" class="btn btn--primary" @click="retry">重新加载</button>
       </div>
 
@@ -795,6 +973,17 @@ defineExpose({ play: tryPlay, pause: pauseVideo, seekTo })
   animation: vp-spin 0.85s linear infinite;
 }
 
+.vp__spinner-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  max-width: min(82%, 320px);
+  color: rgba(255, 255, 255, 0.78);
+  font-size: 12.5px;
+  text-align: center;
+}
+
 @keyframes vp-spin {
   to {
     transform: rotate(360deg);
@@ -810,6 +999,26 @@ defineExpose({ play: tryPlay, pause: pauseVideo, seekTo })
   text-align: center;
   color: #fff;
   font-size: 13.5px;
+}
+
+.vp__error-links {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.vp__error-links a {
+  padding: 5px 10px;
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  border-radius: 14px;
+  color: rgba(255, 255, 255, 0.88);
+  font-size: 12px;
+}
+
+.vp__error-links a:hover {
+  border-color: rgba(255, 255, 255, 0.62);
+  background: rgba(255, 255, 255, 0.1);
 }
 
 .vp__flash {

@@ -7,7 +7,9 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview --host --port 4173"
+    "preview": "vite preview --host --port 4173",
+    "check:catalog": "node tools/check-sources.mjs",
+    "check:sources": "node tools/check-sources.mjs --network"
   },
   "dependencies": {
     "pinia": "^2.2.6",

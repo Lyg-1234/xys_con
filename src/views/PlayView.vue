@@ -1,10 +1,16 @@
 <script setup>
-import { computed, ref, watch } from 'vue'
+import { computed, ref, watch, watchEffect } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import VideoPlayer from '@/components/VideoPlayer.vue'
 import CommentSection from '@/components/CommentSection.vue'
 import AppIcon from '@/components/AppIcon.vue'
-import { getVideo, relatedVideos, resolvePlayUrl } from '@/data/videos'
+import {
+  getVideo,
+  officialSearchLinks,
+  relatedVideos,
+  resolvePlayUrl,
+  sourcePageUrl
+} from '@/data/videos'
 import { useUserStore } from '@/stores/user'
 import { toast } from '@/composables/useToast'
 
@@ -22,9 +28,6 @@ const related = computed(() => relatedVideos(video.value, 8))
 
 const epIndex = ref(0)
 
-const TRIAL_SECONDS = 360
-const trialEnded = ref(false)
-
 function resolveIndex() {
   const total = episodes.value.length
   if (!total) return 0
@@ -39,14 +42,24 @@ watch(
   () => [route.params.id, route.query.epi],
   () => {
     epIndex.value = resolveIndex()
-    trialEnded.value = false
   },
   { immediate: true }
 )
 
 const currentEpisode = computed(() => episodes.value[epIndex.value] || null)
+const officialLinks = computed(() => officialSearchLinks(video.value?.title || ''))
+const currentSourcePage = computed(() =>
+  sourcePageUrl(currentEpisode.value?.srcs?.[0] || '')
+)
 const hasNext = computed(() => epIndex.value < episodes.value.length - 1)
 const hasPrev = computed(() => epIndex.value > 0)
+
+watchEffect(() => {
+  if (video.value) {
+    const episode = episodes.value.length > 1 ? ` ${currentEpisode.value?.title || ''}` : ''
+    document.title = `${video.value.title}${episode} - 云视听`
+  }
+})
 
 const historyRecord = computed(() => user.historyOf(video.value?.id))
 
@@ -57,8 +70,6 @@ const startTime = computed(() => {
   const t = Number(h.time) || 0
   return t > 5 && t < Number(h.duration || 0) - 10 ? Math.max(0, t - 3) : 0
 })
-
-const needVip = computed(() => !!video.value?.vip && !user.isVip)
 
 const shownEpisodes = computed(() =>
   epiReverse.value ? episodes.value.slice().reverse() : episodes.value
@@ -72,9 +83,8 @@ const actorEmoji = (i) => ['🎭', '🎬', '🌟', '🎩', '🎪', '🦸', '👑
 function gotoEpisode(index) {
   if (index < 0 || index >= episodes.value.length || index === epIndex.value) return
   epIndex.value = index
-  trialEnded.value = false
   router.replace({ name: 'play', params: { id: video.value.id }, query: { epi: index + 1 } })
-  toast(`正在播放：${video.value.title} 第${index + 1}${video.value.unit}`)
+  toast(`正在播放：${video.value.title} ${episodes.value[index].title}`)
 }
 
 function nextEpisode() {
@@ -99,11 +109,6 @@ function onProgress({ currentTime, duration }) {
   if (!video.value || !currentEpisode.value) return
   if (!user.settings.remember) return
   if (duration < 1) return
-
-  if (needVip.value && currentTime > TRIAL_SECONDS) {
-    trialEnded.value = true
-    playerRef.value?.pause()
-  }
 
   user.recordHistory({
     id: video.value.id,
@@ -148,9 +153,6 @@ function downloadCurrent() {
   toast('已在新窗口打开视频源')
 }
 
-function openVip() {
-  router.push('/vip')
-}
 </script>
 
 <template>
@@ -168,6 +170,7 @@ function openVip() {
           <AppIcon name="chevron-left" :size="22" />
         </button>
         <VideoPlayer
+          :key="`${video.id}-${currentEpisode?.no || 0}`"
           ref="playerRef"
           :srcs="currentEpisode ? currentEpisode.srcs : []"
           :poster="video.posterLarge"
@@ -185,6 +188,8 @@ function openVip() {
           :dmk-opacity="user.settings.dmkOpacity"
           :dmk-size="user.settings.dmkSize"
           :dmk-area="user.settings.dmkArea"
+          :source-page="currentSourcePage"
+          :fallback-links="officialLinks"
           @ended="onEnded"
           @progress="onProgress"
           @next="nextEpisode"
@@ -194,20 +199,7 @@ function openVip() {
           @update:muted="user.updateSettings({ muted: $event })"
           @update:theater="user.updateSettings({ theater: $event })"
           @back="router.back()"
-        >
-          <template #overlay>
-            <div v-if="trialEnded" class="trial" @click.stop>
-              <p class="trial__title">试看已结束</p>
-              <p class="trial__sub">开通会员后可观看完整内容及全部会员专享影片</p>
-              <div class="trial__ops">
-                <button type="button" class="btn btn--primary btn--lg" @click="openVip">
-                  立即开通会员
-                </button>
-                <RouterLink to="/" class="trial__skip">去逛逛</RouterLink>
-              </div>
-            </div>
-          </template>
-        </VideoPlayer>
+        />
       </div>
 
       <!-- 信息区 -->
@@ -244,15 +236,22 @@ function openVip() {
           </button>
           <button type="button" class="play__op" @click="downloadCurrent">
             <AppIcon name="download" :size="18" />
-            <span>缓存</span>
+            <span>原片</span>
           </button>
         </div>
 
-        <p v-if="needVip" class="play__vip-tip">
-          <AppIcon name="crown" :size="15" />
-          该影片为会员专享，未开通会员可执行演示版「免费试看 {{ TRIAL_SECONDS / 60 }} 分钟」
-          <button type="button" @click="openVip">开通</button>
-        </p>
+        <div class="play__official">
+          <span>没有想看的？到正版平台继续查找</span>
+          <a
+            v-for="item in officialLinks"
+            :key="item.name"
+            :href="item.url"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            {{ item.name }}
+          </a>
+        </div>
 
         <p class="play__desc" :class="{ 'is-open': true }">
           <span class="play__desc-label">简介：</span>{{ video.desc }}
@@ -465,27 +464,33 @@ function openVip() {
   background: var(--brand-soft);
 }
 
-.play__vip-tip {
+.play__official {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: 6px;
+  gap: 8px;
   margin-top: 12px;
   padding: 10px 12px;
   border-radius: 10px;
-  background: linear-gradient(135deg, #fff4e2, #ffe9cf);
-  color: #8a5a12;
-  font-size: 13px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  font-size: 12.5px;
+  color: var(--text-sub);
 }
 
-.play__vip-tip button {
-  margin-left: auto;
-  padding: 4px 12px;
+.play__official span {
+  margin-right: 2px;
+}
+
+.play__official a {
+  padding: 3px 9px;
   border-radius: 12px;
-  background: linear-gradient(135deg, #ffcf6b, #f6a01a);
-  color: #4a3200;
-  font-weight: 600;
-  font-size: 12.5px;
+  background: var(--surface-2);
+  color: var(--text-sub);
+}
+
+.play__official a:hover {
+  color: var(--brand);
 }
 
 .play__desc {
@@ -721,46 +726,6 @@ function openVip() {
 .cast__role {
   font-size: 11.5px;
   text-align: center;
-}
-
-/* ---------- 试看遮罩 ---------- */
-.trial {
-  position: absolute;
-  inset: 0;
-  z-index: 12;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  padding: 20px;
-  text-align: center;
-  background: rgba(8, 9, 13, 0.82);
-  backdrop-filter: blur(3px);
-  color: #fff;
-}
-
-.trial__title {
-  font-size: 20px;
-  font-weight: 700;
-}
-
-.trial__sub {
-  font-size: 13.5px;
-  color: rgba(255, 255, 255, 0.78);
-}
-
-.trial__ops {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 10px;
-  margin-top: 12px;
-}
-
-.trial__skip {
-  font-size: 13px;
-  color: rgba(255, 255, 255, 0.66);
 }
 
 @media (min-width: 768px) {

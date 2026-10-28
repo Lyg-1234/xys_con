@@ -28,7 +28,7 @@ function reset() {
     user.updateSettings({
       autoNext: true,
       autoPlay: true,
-      quality: '1080p',
+      quality: 'auto',
       volume: 0.8,
       muted: false,
       speed: 1,

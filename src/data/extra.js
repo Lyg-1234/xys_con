@@ -1,7 +1,7 @@
 import { VIDEOS, getVideo, queryVideos } from './videos.js'
 
 /** 首页轮播 */
-export const BANNERS = ['tv-01', 'movie-06', 'anime-01', 'variety-01', 'tv-08', 'doc-01']
+export const BANNERS = ['tv-01', 'movie-02', 'movie-03', 'tv-02', 'anime-01', 'doc-02']
   .map((id) => getVideo(id))
   .filter(Boolean)
   .map((v) => ({
@@ -16,24 +16,27 @@ export const BANNERS = ['tv-01', 'movie-06', 'anime-01', 'variety-01', 'tv-08', 
 
 /** 大家都在搜 */
 export const HOT_SEARCH = [
-  '长夜将尽',
-  '声浪对决',
-  '极地重生',
-  '山河永昼',
-  '灵笼',
-  '文旅奇遇记',
-  '逆流器',
-  '丝路千年',
-  '我的治愈系男友',
-  '大地之下'
+  '蒸蒸日上',
+  '现在就出发4',
+  '大淘金',
+  '诺斯费拉图',
+  '大都会',
+  '活死人之夜',
+  '三个臭皮匠',
+  '乐一通',
+  '大力水手',
+  '福尔摩斯',
+  '星际机甲',
+  '陈查理'
 ]
 
 /** 搜索发现 - 分类热词 */
 export const SEARCH_DISCOVER = [
-  { title: '高分国漫', keywords: ['灵笼', '少年与山海', '猫灵小店'] },
-  { title: '悬疑烧脑', keywords: ['深蓝密码', '长夜将尽', '无声证词'] },
-  { title: '下饭综艺', keywords: ['厨房有请', '文旅奇遇记', '脱口秀大会'] },
-  { title: '亲子时光', keywords: ['熊猫小队', '奇妙字母城', '太空猫历险记'] }
+  { title: '正版热播', keywords: ['蒸蒸日上', '现在就出发4'] },
+  { title: '影史经典', keywords: ['诺斯费拉图', '大都会', '月球旅行记'] },
+  { title: '惊悚悬疑', keywords: ['活死人之夜', '灵魂狂欢节', '陈查理'] },
+  { title: '下饭喜剧', keywords: ['三个臭皮匠', '达斯蒂的旅程', '恐怖小店'] },
+  { title: '亲子时光', keywords: ['大力水手', '漫画童谣集', '气球乐园的一天'] }
 ]
 
 /** 联想词 */

@@ -42,7 +42,7 @@ const viewKey = computed(() => (route.name === 'play' ? `play-${route.params.id}
       <div class="container app-footer__inner">
         <p>云视听 · 在线视频</p>
         <p class="weak">
-          本页面为技术演示项目，视频内容来自互联网公开测试片源，仅用于播放器功能验证。
+          站内片源均为可公开播放的授权内容；受版权保护的新剧与综艺请在正版平台观看。
         </p>
       </div>
     </footer>

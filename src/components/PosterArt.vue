@@ -1,5 +1,5 @@
 <script setup>
-import { ref } from 'vue'
+import { ref, watch } from 'vue'
 
 const props = defineProps({
   video: { type: Object, required: true },
@@ -9,6 +9,14 @@ const props = defineProps({
 
 const failed = ref(false)
 const loaded = ref(false)
+
+watch(
+  () => (props.wide ? props.video.posterLarge : props.video.poster),
+  () => {
+    failed.value = false
+    loaded.value = false
+  }
+)
 
 function onError() {
   failed.value = true

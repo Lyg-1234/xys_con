@@ -3,7 +3,7 @@ import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import AppIcon from '@/components/AppIcon.vue'
 import PosterArt from '@/components/PosterArt.vue'
-import { queryVideos } from '@/data/videos'
+import { officialSearchLinks, queryVideos } from '@/data/videos'
 import { HOT_SEARCH, SEARCH_DISCOVER } from '@/data/extra'
 import { useUserStore } from '@/stores/user'
 import { splitHighlight } from '@/utils/format'
@@ -49,6 +49,10 @@ const results = computed(() =>
   keyword.value
     ? queryVideos({ keyword: keyword.value, sort: sort.value, pageSize: 30 })
     : { list: [], total: 0 }
+)
+
+const officialLinks = computed(() =>
+  keyword.value && results.value.list.length === 0 ? officialSearchLinks(keyword.value) : []
 )
 
 function clearInput() {
@@ -173,7 +177,21 @@ onMounted(() => {
         <div v-else class="empty">
           <div class="empty__icon">🔍</div>
           <p>没有找到「{{ keyword }}」相关的内容</p>
-          <p class="weak" style="margin-top: 6px">换个关键词试试，或看看下面的热门推荐</p>
+          <p class="weak" style="margin-top: 6px">
+            本站只收录可直接播放的公开授权片源，可到正版平台继续查找
+          </p>
+          <div class="official-links">
+            <a
+              v-for="item in officialLinks"
+              :key="item.name"
+              :href="item.url"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="btn btn--ghost"
+            >
+              {{ item.name }}
+            </a>
+          </div>
         </div>
       </template>
 
@@ -496,6 +514,14 @@ onMounted(() => {
 
 .discover__list button:hover {
   color: var(--brand);
+}
+
+.official-links {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 16px;
 }
 
 @media (min-width: 768px) {
