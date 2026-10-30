@@ -296,6 +296,7 @@ onBeforeUnmount(() => {
           <div class="tetris-mini-stats">
             <div><span>消行</span><strong>{{ lines }}</strong></div>
             <div><span>等级</span><strong>{{ level }}</strong></div>
+            <div><span>最高</span><strong>{{ best.toLocaleString('zh-CN') }}</strong></div>
           </div>
           <button type="button" class="tetris-pause" :disabled="!running || gameOver" @click="togglePause">
             {{ paused ? '继续' : '暂停' }}
@@ -479,20 +480,25 @@ onBeforeUnmount(() => {
 
 @media (max-width: 600px) {
   .tetris-main {
-    align-items: center;
-    flex-direction: column;
+    align-items: stretch;
+    flex-direction: row;
     gap: 10px;
+    width: 100%;
   }
 
   .tetris-board {
-    width: min(100%, 285px);
+    width: auto;
+    height: min(54dvh, 470px);
+    max-width: calc(100% - 88px);
+    min-height: 330px;
+    margin-inline: auto;
   }
 
   .tetris-info {
-    display: grid;
-    grid-template-columns: 66px minmax(0, 1fr) 58px;
-    align-items: stretch;
-    width: min(100%, 285px);
+    display: flex;
+    align-self: stretch;
+    width: 78px;
+    min-width: 78px;
   }
 
   .tetris-next {
@@ -500,15 +506,24 @@ onBeforeUnmount(() => {
   }
 
   .tetris-next__grid {
-    max-width: 54px;
+    max-width: 64px;
   }
 
   .tetris-mini-stats div {
-    padding: 6px 8px;
+    padding: 5px 6px;
+  }
+
+  .tetris-mini-stats span {
+    font-size: 9px;
+  }
+
+  .tetris-mini-stats strong {
+    font-size: 11px;
   }
 
   .tetris-pause {
     min-height: 100%;
+    min-height: 42px;
     padding: 5px;
   }
 
@@ -516,24 +531,52 @@ onBeforeUnmount(() => {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
     gap: 7px;
-    margin-top: 18px;
+    width: 100%;
+    margin-top: 10px;
   }
 
   .tetris-controls button {
-    height: 44px;
+    min-height: 48px;
     border: 1.5px solid var(--ink);
     border-radius: 11px;
     background: #fff;
     box-shadow: 2px 2px 0 var(--ink);
     font-size: 18px;
     font-weight: 900;
+    touch-action: manipulation;
   }
 
   .tetris-controls .is-wide {
     grid-column: span 4;
-    height: 38px;
+    min-height: 42px;
     background: var(--sun);
     font-size: 13px;
+  }
+}
+
+@media (max-width: 380px) {
+  .tetris-board {
+    max-width: calc(100% - 80px);
+  }
+
+  .tetris-info {
+    width: 70px;
+    min-width: 70px;
+  }
+
+  .tetris-overlay {
+    padding: 10px;
+  }
+
+  .tetris-overlay__badge {
+    width: 45px;
+    height: 45px;
+    font-size: 24px;
+  }
+
+  .tetris-overlay h2 {
+    margin-top: 8px;
+    font-size: 17px;
   }
 }
 

@@ -39,7 +39,8 @@ export function submitScore(gameId, score, meta = {}) {
     ...scorebook.value,
     [gameId]: {
       best: Math.max(Number(previous.best) || 0, value),
-      plays: (Number(previous.plays) || 0) + 1,
+      // 每局开始时已经通过 recordPlay 记账，结算只负责成绩，避免重复累计开局数。
+      plays: Math.max(1, Number(previous.plays) || 0),
       lastPlayed: Date.now(),
       records
     }
@@ -59,6 +60,22 @@ export function recordPlay(gameId) {
     }
   }
   persist()
+}
+
+export function updateBest(gameId, score) {
+  const value = Math.max(0, Math.round(Number(score) || 0))
+  const previous = scorebook.value[gameId] || { best: 0, plays: 0, records: [] }
+  if (value <= (Number(previous.best) || 0)) return previous.best || 0
+
+  scorebook.value = {
+    ...scorebook.value,
+    [gameId]: {
+      ...previous,
+      best: value
+    }
+  }
+  persist()
+  return value
 }
 
 export function clearScores() {
@@ -86,6 +103,7 @@ export function useGameScores() {
     playedGames,
     submitScore,
     recordPlay,
+    updateBest,
     clearScores
   }
 }

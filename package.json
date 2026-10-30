@@ -3,12 +3,15 @@
   "private": true,
   "version": "1.0.0",
   "type": "module",
-  "description": "基于 Vue 3 + Vite 的 26 款在线小游戏合集，支持桌面键盘、手机触控与本机成绩保存",
+  "description": "基于 Vue 3 + Vite 的 29 款在线小游戏合集，支持桌面键盘、手机触控与本机成绩保存",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview --host --port 4173",
-    "check:games": "node tools/check-games.mjs"
+    "check:games": "node tools/check-games.mjs",
+    "check:engines": "node tools/check-engines.mjs",
+    "check": "npm run check:games && npm run check:engines && npm run build",
+    "check:ux": "node tools/check-ux.mjs"
   },
   "dependencies": {
     "vue": "^3.5.13",

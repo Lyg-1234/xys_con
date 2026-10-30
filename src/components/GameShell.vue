@@ -1,12 +1,20 @@
 <script setup>
+import { watch } from 'vue'
 import { RouterLink } from 'vue-router'
+import { updateBest } from '@/composables/useGameScores'
 
-defineProps({
+const props = defineProps({
   game: { type: Object, required: true },
   score: { type: Number, default: 0 },
   best: { type: Number, default: 0 },
   status: { type: String, default: '准备开始' }
 })
+
+watch(
+  () => props.score,
+  (value) => updateBest(props.game.id, value),
+  { flush: 'post' }
+)
 </script>
 
 <template>
@@ -293,62 +301,114 @@ defineProps({
 
 @media (max-width: 600px) {
   .game-page__inner {
-    width: calc(100% - 20px);
+    width: calc(100% - 12px);
   }
 
   .game-page {
-    padding-top: 12px;
+    padding-top: 6px;
+    padding-bottom: 11px;
+  }
+
+  .game-crumb {
+    gap: 5px;
+    margin-bottom: 7px;
+    padding-inline: 4px;
+    font-size: 10px;
   }
 
   .game-head {
     width: 100%;
+    gap: 10px;
     overflow: hidden;
-    padding: 16px;
-    border-radius: 20px;
-    box-shadow: 4px 4px 0 var(--ink);
+    margin-bottom: 10px;
+    padding: 11px 12px;
+    border-radius: 16px;
+    box-shadow: 3px 3px 0 var(--ink);
+  }
+
+  .game-head__identity {
+    gap: 10px;
   }
 
   .game-head__icon {
-    width: 62px;
-    height: 62px;
-    border-radius: 17px;
-    font-size: 28px;
+    width: 48px;
+    height: 48px;
+    border-radius: 14px;
+    font-size: 23px;
+  }
+
+  .game-head h1 {
+    font-size: 23px;
+  }
+
+  .game-head__eyebrow {
+    font-size: 9px;
+  }
+
+  .game-head__identity p:last-child {
+    margin-top: 1px;
+    font-size: 11px;
   }
 
   .game-stats {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 5px;
   }
 
   .game-stat {
     min-width: 0;
-    padding: 8px 10px;
+    padding: 6px 7px;
+    border-radius: 11px;
+  }
+
+  .game-stat span {
+    font-size: 9px;
   }
 
   .game-stat strong {
-    font-size: 17px;
+    font-size: 15px;
   }
 
   .game-stat.is-status strong {
-    font-size: 11px;
+    font-size: 10px;
   }
 
   .game-stage {
     min-height: 0;
     width: 100%;
     min-width: 0;
-    padding: 10px;
-    border-radius: 20px;
-    box-shadow: 4px 4px 0 var(--ink);
+    padding: 7px;
+    border-radius: 16px;
+    box-shadow: 3px 3px 0 var(--ink);
   }
 
   .game-side {
     grid-template-columns: 1fr;
+    gap: 10px;
   }
 
   .game-panel {
     min-width: 0;
-    padding: 14px;
+    padding: 12px;
+    border-radius: 15px;
+    box-shadow: 3px 3px 0 var(--ink);
+  }
+}
+
+@media (max-width: 370px) {
+  .game-head__identity p:last-child {
+    display: none;
+  }
+
+  .game-head__icon {
+    width: 42px;
+    height: 42px;
+    font-size: 21px;
+  }
+
+  .game-head h1 {
+    font-size: 21px;
   }
 }
 </style>

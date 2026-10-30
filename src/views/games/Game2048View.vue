@@ -15,6 +15,8 @@ const won = ref(false)
 const keepPlaying = ref(false)
 const gameOver = ref(false)
 const running = ref(false)
+const newTileIndex = ref(-1)
+const boardElement = ref(null)
 let swipeStart = null
 
 const best = computed(() => bestFor(props.game.id))
@@ -36,6 +38,7 @@ function addRandomTile() {
   const next = board.value.map((row) => row.slice())
   next[spot.y][spot.x] = Math.random() < 0.9 ? 2 : 4
   board.value = next
+  newTileIndex.value = spot.y * SIZE + spot.x
   return true
 }
 
@@ -47,6 +50,7 @@ function startGame() {
   keepPlaying.value = false
   gameOver.value = false
   running.value = true
+  newTileIndex.value = -1
   addRandomTile()
   addRandomTile()
 }
@@ -97,10 +101,7 @@ function move(direction) {
   if (JSON.stringify(next) === before) return
   board.value = next
   score.value += gained
-  if (next.flat().includes(2048) && !won.value) {
-    won.value = true
-    submitScore(props.game.id, score.value, { reached: 2048 })
-  }
+  if (next.flat().includes(2048) && !won.value) won.value = true
   addRandomTile()
   if (!canMove()) finishGame()
 }
@@ -128,6 +129,7 @@ function continueGame() {
 }
 
 function onKeydown(event) {
+  if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement) return
   const key = event.key.toLowerCase()
   const map = {
     arrowleft: 'left',
@@ -147,16 +149,38 @@ function onKeydown(event) {
 }
 
 function onPointerDown(event) {
-  swipeStart = { x: event.clientX, y: event.clientY }
+  if (!running.value || gameOver.value || (won.value && !keepPlaying.value)) return
+  if (event.pointerType === 'mouse' && event.button !== 0) return
+  event.preventDefault()
+  swipeStart = {
+    id: event.pointerId,
+    x: event.clientX,
+    y: event.clientY
+  }
+  event.currentTarget?.setPointerCapture?.(event.pointerId)
 }
 
-function onPointerUp(event) {
-  if (!swipeStart) return
+function finishSwipe(event) {
+  if (!swipeStart || swipeStart.id !== event.pointerId) return
   const dx = event.clientX - swipeStart.x
   const dy = event.clientY - swipeStart.y
   swipeStart = null
-  if (Math.max(Math.abs(dx), Math.abs(dy)) < 18) return
+  if (event.currentTarget?.hasPointerCapture?.(event.pointerId)) {
+    event.currentTarget.releasePointerCapture(event.pointerId)
+  }
+  const boardWidth = boardElement.value?.getBoundingClientRect().width || 320
+  const threshold = Math.max(18, boardWidth * 0.065)
+  if (Math.max(Math.abs(dx), Math.abs(dy)) < threshold) return
   move(Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 'right' : 'left') : dy > 0 ? 'down' : 'up')
+}
+
+function onPointerMove(event) {
+  if (!swipeStart || swipeStart.id !== event.pointerId) return
+  event.preventDefault()
+}
+
+function onPointerCancel(event) {
+  if (swipeStart?.id === event.pointerId) swipeStart = null
 }
 
 onMounted(() => {
@@ -178,18 +202,25 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown))
           <span>空格数量</span>
           <strong>{{ emptyCount }}</strong>
         </div>
+        <div>
+          <span>历史最高</span>
+          <strong>{{ best.toLocaleString('zh-CN') }}</strong>
+        </div>
       </div>
 
       <div
+        ref="boardElement"
         class="n2048-board"
         @pointerdown="onPointerDown"
-        @pointerup="onPointerUp"
+        @pointermove="onPointerMove"
+        @pointerup="finishSwipe"
+        @pointercancel="onPointerCancel"
       >
         <div
           v-for="(value, index) in board.flat()"
           :key="index"
           class="n2048-cell"
-          :class="`tile-${value || 0}`"
+          :class="[`tile-${value || 0}`, { 'is-new': newTileIndex === index }]"
         >
           <span v-if="value">{{ value }}</span>
         </div>
@@ -211,7 +242,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown))
           <button type="button" class="btn btn--yellow" @click="startGame">再来一局</button>
         </div>
       </div>
-      <p class="n2048-hint">在棋盘上滑动，或使用方向键移动方块。</p>
+      <p class="n2048-hint">在棋盘上滑动，或使用方向键移动。每个有效回合会新增一枚 2 或 4。</p>
     </div>
 
     <template #actions>
@@ -226,14 +257,16 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown))
 }
 
 .n2048-head {
-  display: flex;
-  justify-content: flex-end;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 8px;
+  width: min(100%, 470px);
   margin-bottom: 12px;
+  margin-inline: auto;
 }
 
 .n2048-head div {
-  min-width: 100px;
+  min-width: 0;
   padding: 7px 11px;
   border: 1.5px solid var(--ink);
   border-radius: 11px;
@@ -252,7 +285,9 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown))
 }
 
 .n2048-head strong {
+  overflow: hidden;
   font-size: 17px;
+  text-overflow: ellipsis;
 }
 
 .n2048-board {
@@ -281,7 +316,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown))
   transition: background 0.16s ease;
 }
 
-.n2048-cell:not(.tile-0) {
+.n2048-cell.is-new {
   animation: pop 0.18s ease;
 }
 
@@ -342,5 +377,37 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown))
 
 .action-btn {
   width: 100%;
+}
+
+@media (max-width: 600px) {
+  .n2048-head {
+    gap: 5px;
+    margin-bottom: 8px;
+  }
+
+  .n2048-head div {
+    padding: 5px 4px;
+  }
+
+  .n2048-head strong {
+    font-size: 14px;
+  }
+
+  .n2048-board {
+    gap: 7px;
+    padding: 8px;
+    border-radius: 15px;
+    box-shadow: 4px 4px 0 var(--ink);
+  }
+
+  .n2048-cell {
+    border-radius: 8px;
+  }
+
+  .n2048-hint {
+    max-width: 330px;
+    font-size: 10px;
+    line-height: 1.5;
+  }
 }
 </style>

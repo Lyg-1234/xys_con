@@ -2,6 +2,22 @@
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import GameShell from '@/components/GameShell.vue'
 import { recordPlay, submitScore, useGameScores } from '@/composables/useGameScores'
+import {
+  CHECKERS_SIZE,
+  applyCheckerMove,
+  checkerAllMoves,
+  checkerMoves,
+  chooseCheckerMove,
+  createCheckersBoard
+} from '@/games/checkers'
+import {
+  applyReversiMove,
+  chooseReversiMove,
+  createReversiBoard,
+  reversiCount,
+  reversiFlips,
+  reversiMoves
+} from '@/games/reversi'
 
 const props = defineProps({
   game: { type: Object, required: true }
@@ -237,6 +253,322 @@ function connectComputerMove() {
   const next = connectBoard.value.slice()
   next[connectIndex(row, col)] = 'yellow'
   resetConnectTurn(next, 'yellow')
+}
+
+// 五子棋
+const GOMOKU_SIZE = 15
+const gomoku = ref(Array(GOMOKU_SIZE * GOMOKU_SIZE).fill(''))
+const gomokuTurn = ref('black')
+const gomokuLast = ref(-1)
+const gomokuHint = ref('你执黑棋先手，点击交叉点落子。')
+const GOMOKU_DIRECTIONS = [[0, 1], [1, 0], [1, 1], [1, -1]]
+
+function resetGomoku() {
+  gomoku.value = Array(GOMOKU_SIZE * GOMOKU_SIZE).fill('')
+  gomokuTurn.value = 'black'
+  gomokuLast.value = -1
+  gomokuHint.value = '你执黑棋先手，点击交叉点落子。'
+}
+
+function gomokuPoint(index) {
+  return { row: Math.floor(index / GOMOKU_SIZE), col: index % GOMOKU_SIZE }
+}
+
+function gomokuLineLength(board, index, color, dy, dx) {
+  const { row, col } = gomokuPoint(index)
+  let count = 1
+  for (const sign of [-1, 1]) {
+    for (let step = 1; step < GOMOKU_SIZE; step += 1) {
+      const nextRow = row + dy * step * sign
+      const nextCol = col + dx * step * sign
+      if (
+        nextRow < 0 || nextRow >= GOMOKU_SIZE ||
+        nextCol < 0 || nextCol >= GOMOKU_SIZE ||
+        board[nextRow * GOMOKU_SIZE + nextCol] !== color
+      ) break
+      count += 1
+    }
+  }
+  return count
+}
+
+function gomokuWins(board, index, color) {
+  return GOMOKU_DIRECTIONS.some(([dy, dx]) => gomokuLineLength(board, index, color, dy, dx) >= 5)
+}
+
+function gomokuCandidates(board) {
+  const result = []
+  for (let index = 0; index < board.length; index += 1) {
+    if (board[index]) continue
+    const { row, col } = gomokuPoint(index)
+    let nearby = false
+    for (let dy = -2; dy <= 2 && !nearby; dy += 1) {
+      for (let dx = -2; dx <= 2; dx += 1) {
+        const r = row + dy
+        const c = col + dx
+        if (r >= 0 && r < GOMOKU_SIZE && c >= 0 && c < GOMOKU_SIZE && board[r * GOMOKU_SIZE + c]) {
+          nearby = true
+          break
+        }
+      }
+    }
+    if (nearby) result.push(index)
+  }
+  return result
+}
+
+function gomokuPositionScore(board, index, color) {
+  const { row, col } = gomokuPoint(index)
+  let value = GOMOKU_SIZE - Math.abs(row - 7) - Math.abs(col - 7)
+  for (const [dy, dx] of GOMOKU_DIRECTIONS) {
+    const own = gomokuLineLength(board, index, color, dy, dx)
+    const enemy = gomokuLineLength(board, index, color === 'black' ? 'white' : 'black', dy, dx)
+    value += own * own * 14 + enemy * enemy * 19
+  }
+  return value
+}
+
+function chooseGomokuMove() {
+  const board = gomoku.value.slice()
+  const candidates = gomokuCandidates(board)
+  if (!candidates.length) return 112
+  const immediateWin = candidates.find((index) => {
+    const test = board.slice()
+    test[index] = 'white'
+    return gomokuWins(test, index, 'white')
+  })
+  if (immediateWin != null) return immediateWin
+  const mustBlock = candidates.find((index) => {
+    const test = board.slice()
+    test[index] = 'black'
+    return gomokuWins(test, index, 'black')
+  })
+  if (mustBlock != null) return mustBlock
+  return candidates
+    .map((index) => ({ index, value: gomokuPositionScore(board, index, 'white') }))
+    .sort((a, b) => b.value - a.value || a.index - b.index)[0].index
+}
+
+function finishGomoku(color, moves) {
+  const playerWon = color === 'black'
+  completeGame(
+    playerWon ? '五子连珠！' : '电脑先连成五子',
+    playerWon ? `你用了 ${moves} 手完成连线。` : '电脑抢先完成了五子连线，再试一局。',
+    playerWon ? 500 : 40
+  )
+}
+
+function gomokuMove(index) {
+  if (!running.value || finished.value || gomokuTurn.value !== 'black' || gomoku.value[index]) return
+  const board = gomoku.value.slice()
+  board[index] = 'black'
+  gomoku.value = board
+  gomokuLast.value = index
+  if (gomokuWins(board, index, 'black')) {
+    finishGomoku('black', board.filter(Boolean).length)
+    return
+  }
+  if (board.every(Boolean)) {
+    completeGame('平局', '十五路棋盘已满，没有一方连成五子。', 100)
+    return
+  }
+  gomokuTurn.value = 'white'
+  gomokuHint.value = '电脑正在思考…'
+  later(gomokuComputerMove, 260)
+}
+
+function gomokuComputerMove() {
+  if (!running.value || finished.value || gomokuTurn.value !== 'white') return
+  const index = chooseGomokuMove()
+  const board = gomoku.value.slice()
+  board[index] = 'white'
+  gomoku.value = board
+  gomokuLast.value = index
+  if (gomokuWins(board, index, 'white')) {
+    finishGomoku('white', board.filter(Boolean).length)
+    return
+  }
+  if (board.every(Boolean)) {
+    completeGame('平局', '十五路棋盘已满，没有一方连成五子。', 100)
+    return
+  }
+  gomokuTurn.value = 'black'
+  gomokuHint.value = '轮到你落子，留意电脑的下一步连线。'
+}
+
+// 黑白棋
+const reversi = ref([])
+const reversiTurn = ref('black')
+const reversiLast = ref(-1)
+const reversiHint = ref('你执黑棋。圆点标记的位置可以落子。')
+
+function resetReversi() {
+  reversi.value = createReversiBoard()
+  reversiTurn.value = 'black'
+  reversiLast.value = -1
+  reversiHint.value = '你执黑棋。圆点标记的位置可以落子。'
+}
+
+function finishReversi() {
+  const player = reversiCount(reversi.value, 'black')
+  const computer = reversiCount(reversi.value, 'white')
+  if (player > computer) {
+    completeGame('领地更多！', `黑棋 ${player} 枚，白棋 ${computer} 枚，你赢下了棋局。`, 500 + (player - computer) * 20)
+  } else if (computer > player) {
+    completeGame('电脑领地更多', `黑棋 ${player} 枚，白棋 ${computer} 枚。`, 50)
+  } else {
+    completeGame('平局', `双方各 ${player} 枚棋子。`, 150)
+  }
+}
+
+function continueReversi(board, color) {
+  reversi.value = board
+  const ownMoves = reversiMoves(board, color)
+  const other = color === 'black' ? 'white' : 'black'
+  const otherMoves = reversiMoves(board, other)
+  if (!ownMoves.length && !otherMoves.length) {
+    finishReversi()
+    return
+  }
+  if (color === 'black') {
+    if (ownMoves.length) {
+      reversiTurn.value = 'black'
+      reversiHint.value = '轮到你落子。'
+      return
+    }
+    reversiTurn.value = 'white'
+    reversiHint.value = '你没有可落子的位置，电脑继续。'
+    later(reversiComputerMove, 520)
+    return
+  }
+  if (ownMoves.length) {
+    reversiTurn.value = 'white'
+    reversiHint.value = '电脑正在选择落子位置…'
+    later(reversiComputerMove, 360)
+    return
+  }
+  reversiTurn.value = 'black'
+  reversiHint.value = '电脑没有可落子的位置，轮到你继续。'
+}
+
+function reversiMove(index) {
+  if (!running.value || finished.value || reversiTurn.value !== 'black') return
+  const move = reversiMoves(reversi.value, 'black').find((item) => item.index === index)
+  if (!move) {
+    reversiHint.value = '这里不能落子，请选择带圆点的位置。'
+    return
+  }
+  const next = applyReversiMove(reversi.value, move, 'black')
+  reversi.value = next
+  reversiLast.value = index
+  reversiHint.value = `你翻转了 ${move.flips.length} 枚棋子。`
+  continueReversi(next, 'white')
+}
+
+function reversiComputerMove() {
+  if (!running.value || finished.value || reversiTurn.value !== 'white') return
+  const move = chooseReversiMove(reversi.value)
+  if (!move) {
+    continueReversi(reversi.value, 'black')
+    return
+  }
+  const next = applyReversiMove(reversi.value, move, 'white')
+  reversi.value = next
+  reversiLast.value = move.index
+  reversiHint.value = `电脑翻转了 ${move.flips.length} 枚棋子。`
+  continueReversi(next, 'black')
+}
+
+// 西洋跳棋
+const checkers = ref([])
+const checkerTurn = ref('red')
+const checkerSelected = ref(-1)
+const checkerLegal = ref([])
+const checkerHint = ref('你执红棋。先点棋子，再点高亮位置。')
+
+function resetCheckers() {
+  checkers.value = createCheckersBoard()
+  checkerTurn.value = 'red'
+  checkerSelected.value = -1
+  checkerLegal.value = []
+  checkerHint.value = '你执红棋。先点棋子，再点高亮位置。'
+}
+
+function checkerPlayerTurn() {
+  checkerTurn.value = 'red'
+  checkerSelected.value = -1
+  checkerLegal.value = []
+  if (!checkerAllMoves(checkers.value, 'red').length) {
+    completeGame('电脑获胜', '你已经没有合法走法。', 50)
+    return
+  }
+  checkerHint.value = '轮到你走棋，有吃子时必须优先吃子。'
+}
+
+function playChecker(index) {
+  if (!running.value || finished.value || checkerTurn.value !== 'red') return
+  const piece = checkers.value[index]
+  if (piece && piece.toLowerCase() === 'r') {
+    const allCaptures = checkerAllMoves(checkers.value, 'red').filter((move) => move.captured >= 0)
+    const moves = checkerMoves(checkers.value, index)
+    checkerSelected.value = index
+    checkerLegal.value = allCaptures.length
+      ? moves.filter((move) => move.captured >= 0)
+      : moves.filter((move) => move.captured < 0)
+    checkerHint.value = checkerLegal.value.length
+      ? '点击高亮位置完成移动。'
+      : allCaptures.length ? '有棋子可以吃，必须先选择能吃的红棋。' : '这枚棋子当前无法移动。'
+    return
+  }
+
+  const move = checkerLegal.value.find((item) => item.to === index)
+  if (checkerSelected.value < 0 || !move) return
+  const result = applyCheckerMove(checkers.value, move)
+  checkers.value = result.board
+  score.value += move.captured >= 0 ? 80 : 10
+  checkerSelected.value = -1
+  checkerLegal.value = []
+  if (move.captured >= 0) {
+    const followUps = checkerMoves(result.board, move.to).filter((item) => item.captured >= 0)
+    if (followUps.length) {
+      checkerSelected.value = move.to
+      checkerLegal.value = followUps
+      checkerHint.value = '可以继续吃子，请再选择一个高亮位置。'
+      return
+    }
+  }
+  if (!checkers.value.some((item) => item?.toLowerCase() === 'b')) {
+    completeGame('红棋获胜！', '你清空了电脑的所有棋子。', 500 + score.value)
+    return
+  }
+  checkerTurn.value = 'black'
+  checkerHint.value = '电脑正在思考…'
+  later(checkerComputerMove, 320)
+}
+
+function checkerComputerMove(forcedFrom = -1) {
+  if (!running.value || finished.value || checkerTurn.value !== 'black') return
+  const move = chooseCheckerMove(checkers.value, forcedFrom)
+  if (!move) {
+    if (forcedFrom >= 0) checkerPlayerTurn()
+    else completeGame('红棋获胜！', '电脑已经没有合法走法。', 500 + score.value)
+    return
+  }
+  const result = applyCheckerMove(checkers.value, move)
+  checkers.value = result.board
+  if (!checkers.value.some((item) => item?.toLowerCase() === 'r')) {
+    completeGame('电脑获胜', '红棋已经被全部吃掉。', score.value)
+    return
+  }
+  if (move.captured >= 0) {
+    const followUps = checkerMoves(result.board, move.to).filter((item) => item.captured >= 0)
+    if (followUps.length) {
+      checkerHint.value = '电脑正在连续吃子…'
+      later(() => checkerComputerMove(move.to), 320)
+      return
+    }
+  }
+  checkerPlayerTurn()
 }
 
 // 关灯挑战
@@ -582,6 +914,9 @@ function resetWord() {
 const tutorial = computed(() => ({
   'tic-tac-toe': '你执 X 先手。电脑会优先阻止你连线。',
   'connect-four': '你执红棋先手，点击任意一列投下棋子。',
+  gomoku: '你执黑棋先手，横、竖或斜向连成五子即获胜。',
+  reversi: '你执黑棋。只能在能夹住并翻转白棋的圆点位置落子。',
+  checkers: '你执红棋向棋盘上方移动。有吃子时必须连续完成吃子，到底线升王。',
   'lights-out': '所有灯熄灭即完成，步数越少分数越高。',
   'sliding-puzzle': '开局一定可解，点击空格相邻的数字移动。',
   'number-guess': '电脑会提示偏大或偏小，范围会越来越清晰。',
@@ -596,6 +931,9 @@ const status = computed(() => {
   if (!running.value) return '准备开始'
   if (mode.value === 'tic-tac-toe') return ticTurn.value === 'X' ? '轮到你' : '电脑思考'
   if (mode.value === 'connect-four') return connectTurn.value === 'red' ? '轮到你' : '电脑思考'
+  if (mode.value === 'gomoku') return gomokuTurn.value === 'black' ? '轮到你' : '电脑思考'
+  if (mode.value === 'reversi') return reversiTurn.value === 'black' ? '轮到你' : '电脑思考'
+  if (mode.value === 'checkers') return checkerTurn.value === 'red' ? '轮到你' : '电脑思考'
   if (mode.value === 'lights-out') return `${lightMoves.value} 步`
   if (mode.value === 'sliding-puzzle') return `${slidingSeconds.value}s`
   if (mode.value === 'number-guess') return `第 ${guessAttempts.value + 1} 次`
@@ -610,6 +948,9 @@ function startGame() {
   beginSession()
   if (mode.value === 'tic-tac-toe') resetTic()
   else if (mode.value === 'connect-four') resetConnect()
+  else if (mode.value === 'gomoku') resetGomoku()
+  else if (mode.value === 'reversi') resetReversi()
+  else if (mode.value === 'checkers') resetCheckers()
   else if (mode.value === 'lights-out') resetLights()
   else if (mode.value === 'sliding-puzzle') {
     resetSliding()
@@ -666,6 +1007,96 @@ onBeforeUnmount(clearTimers)
           />
         </div>
         <p class="pack-hint">点击任意一列，棋子会自动落到最底部。</p>
+      </section>
+
+      <section v-else-if="mode === 'gomoku'" class="pack-game board-game">
+        <div class="board-turn">
+          <span><i class="stone-dot is-black" /> 你</span>
+          <b>{{ gomokuTurn === 'black' ? '请落子' : '电脑思考中' }}</b>
+          <span><i class="stone-dot is-white" /> 电脑</span>
+        </div>
+        <div class="gomoku-board" aria-label="十五路五子棋棋盘">
+          <button
+            v-for="(value, index) in gomoku"
+            :key="index"
+            type="button"
+            class="gomoku-cell"
+            :class="{
+              'is-black': value === 'black',
+              'is-white': value === 'white',
+              'is-last': gomokuLast === index
+            }"
+            :aria-label="`第 ${Math.floor(index / 15) + 1} 行第 ${(index % 15) + 1} 列${value ? `，${value === 'black' ? '黑棋' : '白棋'}` : ''}`"
+            :disabled="finished || gomokuTurn !== 'black'"
+            @click="gomokuMove(index)"
+          >
+            <span v-if="value" />
+          </button>
+        </div>
+        <p class="pack-hint">{{ gomokuHint }}</p>
+      </section>
+
+      <section v-else-if="mode === 'reversi'" class="pack-game board-game">
+        <div class="reversi-meta">
+          <span>黑棋 <b>{{ reversiCount(reversi, 'black') }}</b></span>
+          <em>{{ reversiTurn === 'black' ? '轮到你' : '电脑思考中' }}</em>
+          <span>白棋 <b>{{ reversiCount(reversi, 'white') }}</b></span>
+        </div>
+        <div class="reversi-board" aria-label="黑白棋棋盘">
+          <button
+            v-for="(value, index) in reversi"
+            :key="index"
+            type="button"
+            class="reversi-cell"
+            :class="{
+              'is-black': value === 'black',
+              'is-white': value === 'white',
+              'is-legal': reversiTurn === 'black' && reversiFlips(reversi, index, 'black').length,
+              'is-last': reversiLast === index
+            }"
+            :aria-label="`第 ${Math.floor(index / 8) + 1} 行第 ${(index % 8) + 1} 列`"
+            :disabled="finished || reversiTurn !== 'black'"
+            @click="reversiMove(index)"
+          >
+            <span v-if="value" />
+          </button>
+        </div>
+        <p class="pack-hint">{{ reversiHint }}</p>
+      </section>
+
+      <section v-else-if="mode === 'checkers'" class="pack-game board-game">
+        <div class="checker-meta">
+          <span>红棋 {{ checkers.filter((item) => item?.toLowerCase() === 'r').length }}</span>
+          <b>{{ checkerTurn === 'red' ? '轮到你' : '电脑思考中' }}</b>
+          <span>黑棋 {{ checkers.filter((item) => item?.toLowerCase() === 'b').length }}</span>
+        </div>
+        <div class="checker-board" aria-label="西洋跳棋棋盘">
+          <button
+            v-for="(value, index) in checkers"
+            :key="index"
+            type="button"
+            class="checker-cell"
+            :class="{
+              'is-playable': (Math.floor(index / 8) + (index % 8)) % 2 === 1,
+              'is-selected': checkerSelected === index,
+              'is-legal': checkerLegal.some((move) => move.to === index),
+              'is-king': value && value === value.toUpperCase()
+            }"
+            :disabled="finished || checkerTurn !== 'red'"
+            :aria-label="`第 ${Math.floor(index / 8) + 1} 行第 ${(index % 8) + 1} 列`"
+            @click="playChecker(index)"
+          >
+            <span
+              v-if="value"
+              class="checker-piece"
+              :class="value.toLowerCase() === 'r' ? 'is-red' : 'is-black'"
+            >
+              <i v-if="value === value.toUpperCase()">♛</i>
+            </span>
+            <i v-else-if="checkerLegal.some((move) => move.to === index)" class="checker-move-dot" />
+          </button>
+        </div>
+        <p class="pack-hint">{{ checkerHint }}</p>
       </section>
 
       <section v-else-if="mode === 'lights-out'" class="pack-game">
@@ -940,6 +1371,241 @@ onBeforeUnmount(clearTimers)
 .connect-cell.is-yellow {
   background: #ffd43b;
   box-shadow: inset 0 -4px 0 #c6920c;
+}
+
+.board-game {
+  gap: 10px;
+}
+
+.board-turn,
+.reversi-meta,
+.checker-meta {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  width: 100%;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.board-turn span,
+.reversi-meta span,
+.checker-meta span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.board-turn b,
+.reversi-meta em,
+.checker-meta b {
+  padding: 4px 10px;
+  border: 1.5px solid var(--ink);
+  border-radius: 999px;
+  background: var(--sun);
+  font-size: 10px;
+  font-style: normal;
+  font-weight: 900;
+}
+
+.stone-dot {
+  width: 15px;
+  height: 15px;
+  border: 1.5px solid var(--ink);
+  border-radius: 50%;
+}
+
+.stone-dot.is-black {
+  background: #17212b;
+}
+
+.stone-dot.is-white {
+  background: #fff;
+}
+
+.gomoku-board {
+  display: grid;
+  grid-template-columns: repeat(15, minmax(0, 1fr));
+  width: min(100%, 520px);
+  padding: 6px;
+  overflow: hidden;
+  border: 2px solid var(--ink);
+  border-radius: 15px;
+  background: #d9a95f;
+  box-shadow: 5px 5px 0 var(--ink);
+  touch-action: manipulation;
+}
+
+.gomoku-cell {
+  position: relative;
+  min-width: 0;
+  aspect-ratio: 1;
+  border: 0;
+  background: transparent;
+}
+
+.gomoku-cell::before,
+.gomoku-cell::after {
+  content: '';
+  position: absolute;
+  z-index: 0;
+  background: rgba(24, 35, 47, 0.55);
+  pointer-events: none;
+}
+
+.gomoku-cell::before {
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: 1px;
+}
+
+.gomoku-cell::after {
+  top: 50%;
+  right: 0;
+  left: 0;
+  height: 1px;
+}
+
+.gomoku-cell span {
+  position: absolute;
+  inset: 10%;
+  z-index: 1;
+  border: 1px solid #0d151d;
+  border-radius: 50%;
+  box-shadow: 1px 2px 0 rgba(24, 35, 47, 0.3);
+}
+
+.gomoku-cell.is-black span {
+  background: #18232f;
+}
+
+.gomoku-cell.is-white span {
+  background: #fffdf7;
+}
+
+.gomoku-cell.is-last span {
+  outline: 2px solid var(--coral);
+  outline-offset: 1px;
+}
+
+.reversi-board,
+.checker-board {
+  display: grid;
+  grid-template-columns: repeat(8, minmax(0, 1fr));
+  width: min(100%, 430px);
+  overflow: hidden;
+  border: 2px solid var(--ink);
+  border-radius: 15px;
+  box-shadow: 5px 5px 0 var(--ink);
+  touch-action: manipulation;
+}
+
+.reversi-board {
+  padding: 5px;
+  gap: 2px;
+  background: #236c57;
+}
+
+.reversi-cell {
+  position: relative;
+  display: grid;
+  place-items: center;
+  min-width: 0;
+  aspect-ratio: 1;
+  border: 0;
+  border-radius: 4px;
+  background: #2f8a6e;
+}
+
+.reversi-cell > span {
+  width: 82%;
+  aspect-ratio: 1;
+  border: 1.5px solid #0b1813;
+  border-radius: 50%;
+  box-shadow: inset -2px -2px 0 rgba(0, 0, 0, 0.18);
+}
+
+.reversi-cell.is-black > span {
+  background: #17212b;
+}
+
+.reversi-cell.is-white > span {
+  background: #fffdf7;
+}
+
+.reversi-cell.is-legal:not(:disabled)::after {
+  content: '';
+  position: absolute;
+  width: 27%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: rgba(255, 244, 184, 0.8);
+}
+
+.reversi-cell.is-last > span {
+  outline: 2px solid var(--coral);
+  outline-offset: 2px;
+}
+
+.checker-board {
+  gap: 0;
+  background: #f3dcb0;
+}
+
+.checker-cell {
+  position: relative;
+  display: grid;
+  place-items: center;
+  min-width: 0;
+  aspect-ratio: 1;
+  border: 0;
+  background: #f8e7c5;
+}
+
+.checker-cell.is-playable {
+  background: #5f3b28;
+}
+
+.checker-cell.is-selected {
+  outline: 3px solid var(--sun);
+  outline-offset: -3px;
+}
+
+.checker-piece {
+  position: relative;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  width: 76%;
+  aspect-ratio: 1;
+  border: 1.5px solid #121920;
+  border-radius: 50%;
+  box-shadow: inset -3px -3px 0 rgba(0, 0, 0, 0.2), 2px 2px 0 rgba(0, 0, 0, 0.24);
+}
+
+.checker-piece.is-red {
+  background: #ff6554;
+}
+
+.checker-piece.is-black {
+  background: #202a34;
+}
+
+.checker-piece i {
+  color: #fff0a6;
+  font-size: clamp(12px, 4vw, 23px);
+  font-style: normal;
+  font-weight: 1000;
+}
+
+.checker-move-dot {
+  width: 29%;
+  aspect-ratio: 1;
+  border: 2px solid rgba(255, 244, 184, 0.85);
+  border-radius: 50%;
+  background: rgba(255, 212, 59, 0.56);
 }
 
 .lights-board {

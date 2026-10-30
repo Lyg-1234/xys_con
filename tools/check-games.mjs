@@ -3,7 +3,8 @@ import { GAMES } from '../src/data/games.js'
 
 const expected = [
   'tetris', 'spot-difference', 'memory', 'snake', '2048', 'minesweeper',
-  'tic-tac-toe', 'connect-four', 'lights-out', 'sliding-puzzle', 'number-guess',
+  'tic-tac-toe', 'connect-four', 'gomoku', 'reversi', 'checkers',
+  'lights-out', 'sliding-puzzle', 'number-guess',
   'math-sprint', 'odd-one-out', 'simon-says', 'word-scramble', 'color-match',
   'rock-paper-scissors', 'whack-a-mole', 'reaction-test', 'aim-trainer',
   'typing-rush', 'tap-sequence', 'stack-tower', 'pong', 'breakout', 'sky-dodge'
@@ -42,6 +43,9 @@ function componentName(id) {
     minesweeper: 'MinesweeperView',
     'tic-tac-toe': 'PuzzlePackView',
     'connect-four': 'PuzzlePackView',
+    gomoku: 'PuzzlePackView',
+    reversi: 'PuzzlePackView',
+    checkers: 'PuzzlePackView',
     'lights-out': 'PuzzlePackView',
     'sliding-puzzle': 'PuzzlePackView',
     'number-guess': 'PuzzlePackView',
