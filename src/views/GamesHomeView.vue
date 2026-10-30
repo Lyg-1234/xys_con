@@ -203,6 +203,7 @@ function randomGame() {
   z-index: 2;
   align-self: center;
   padding: 44px clamp(24px, 5vw, 62px);
+  min-width: 0;
 }
 
 .hero__badge {
@@ -223,6 +224,7 @@ function randomGame() {
   font-size: clamp(40px, 6vw, 68px);
   line-height: 0.98;
   letter-spacing: -0.055em;
+  overflow-wrap: anywhere;
 }
 
 .hero h1 span {
@@ -250,6 +252,7 @@ function randomGame() {
   border-radius: 17px;
   background: var(--paper);
   box-shadow: 4px 4px 0 var(--ink);
+  min-width: 0;
 }
 
 .hero__search > span {
@@ -418,9 +421,12 @@ function randomGame() {
   border: 1.5px solid var(--ink);
   border-radius: 15px;
   background: var(--paper);
+  min-width: 0;
+  text-align: center;
 }
 
 .home-stats strong {
+  flex: none;
   font-size: 22px;
 }
 
@@ -428,6 +434,7 @@ function randomGame() {
   color: var(--muted);
   font-size: 11px;
   font-weight: 700;
+  line-height: 1.35;
 }
 
 .home-section {
@@ -440,6 +447,8 @@ function randomGame() {
   margin-bottom: 17px;
   overflow-x: auto;
   padding: 2px;
+  max-width: 100%;
+  overscroll-behavior-inline: contain;
 }
 
 .category-row::-webkit-scrollbar {
@@ -520,6 +529,7 @@ function randomGame() {
   position: relative;
   z-index: 1;
   padding: 0 18px 0 26px;
+  min-width: 0;
 }
 
 .daily__body h2 {
@@ -571,6 +581,7 @@ function randomGame() {
 .mini-rank li div {
   min-width: 0;
   flex: 1;
+  overflow-wrap: anywhere;
 }
 
 .mini-rank strong,
@@ -670,7 +681,7 @@ function randomGame() {
   }
 
   .hero h1 {
-    font-size: 42px;
+    font-size: clamp(34px, 10.8vw, 42px);
   }
 
   .hero__copy > p {
@@ -678,6 +689,8 @@ function randomGame() {
   }
 
   .hero__search button {
+    flex: none;
+    min-height: 40px;
     padding: 0 10px;
   }
 
@@ -710,8 +723,8 @@ function randomGame() {
   }
 
   .games-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 12px;
+    grid-template-columns: 1fr;
+    gap: 16px;
   }
 
   .daily {
@@ -735,6 +748,10 @@ function randomGame() {
   .continue-strip {
     align-items: flex-start;
     flex-direction: column;
+  }
+
+  .continue-strip .btn {
+    width: 100%;
   }
 }
 </style>

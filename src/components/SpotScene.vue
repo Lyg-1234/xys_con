@@ -19,11 +19,11 @@ const windowLit = computed(() => !alternates)
 const balloonColor = computed(() => (alternates ? '#54a7ff' : '#ff6554'))
 
 const hotspots = [
-  { id: 'sun', label: '太阳', x: 72, y: 44, r: 34 },
-  { id: 'smoke', label: '烟囱', x: 282, y: 72, r: 31 },
-  { id: 'window', label: '窗户', x: 266, y: 145, r: 28 },
-  { id: 'flowers', label: '花朵', x: 118, y: 236, r: 34 },
-  { id: 'balloon', label: '气球', x: 357, y: 117, r: 30 }
+  { id: 'sun', label: '太阳', x: 72, y: 44, r: 38 },
+  { id: 'smoke', label: '烟囱', x: 282, y: 72, r: 36 },
+  { id: 'window', label: '窗户', x: 266, y: 145, r: 36 },
+  { id: 'flowers', label: '花朵', x: 118, y: 236, r: 38 },
+  { id: 'balloon', label: '气球', x: 357, y: 117, r: 37 }
 ]
 
 function handleClick(event) {
@@ -151,6 +151,7 @@ function handleClick(event) {
   background: #fff;
   cursor: crosshair;
   touch-action: manipulation;
+  user-select: none;
 }
 
 .spot-ring {

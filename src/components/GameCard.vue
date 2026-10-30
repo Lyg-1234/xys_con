@@ -34,12 +34,15 @@ defineProps({
 <style scoped>
 .game-card {
   display: block;
+  width: 100%;
+  min-width: 0;
   overflow: hidden;
   border: 2px solid var(--ink);
   border-radius: 22px;
   background: var(--paper);
   box-shadow: 5px 5px 0 var(--ink);
   transition: transform 0.2s ease, box-shadow 0.2s ease;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .game-card:hover {
@@ -47,11 +50,22 @@ defineProps({
   box-shadow: 9px 10px 0 var(--ink);
 }
 
+.game-card:active {
+  transform: translate(1px, 1px) scale(0.995);
+  box-shadow: 3px 3px 0 var(--ink);
+}
+
+.game-card:focus-visible {
+  outline: 3px solid var(--coral);
+  outline-offset: 4px;
+}
+
 .game-card__art {
   position: relative;
   display: grid;
   place-items: center;
-  height: 150px;
+  width: 100%;
+  height: clamp(176px, 16vw, 210px);
   overflow: hidden;
   background: var(--card-gradient);
   border-bottom: 2px solid var(--ink);
@@ -62,12 +76,12 @@ defineProps({
   z-index: 2;
   display: grid;
   place-items: center;
-  width: 78px;
-  height: 78px;
+  width: clamp(88px, 9vw, 112px);
+  height: clamp(88px, 9vw, 112px);
   border: 2px solid var(--ink);
   border-radius: 24px;
   background: rgba(255, 255, 255, 0.86);
-  font-size: 40px;
+  font-size: clamp(44px, 4.8vw, 58px);
   box-shadow: 5px 5px 0 rgba(24, 35, 47, 0.9);
   transform: rotate(-5deg);
   transition: transform 0.25s ease;
@@ -113,6 +127,7 @@ defineProps({
 }
 
 .game-card__body {
+  min-width: 0;
   padding: 14px 15px 13px;
 }
 
@@ -126,11 +141,13 @@ defineProps({
 .game-card h3 {
   margin-top: 2px;
   font-size: 20px;
+  line-height: 1.25;
 }
 
 .game-card__subtitle {
   color: var(--muted);
   font-size: 12.5px;
+  line-height: 1.6;
 }
 
 .game-card__foot {
@@ -159,5 +176,36 @@ defineProps({
 
 .game-card:hover .game-card__foot i {
   transform: translateX(4px);
+}
+
+@media (max-width: 720px) {
+  .game-card__art {
+    height: clamp(184px, 25vw, 210px);
+  }
+}
+
+@media (max-width: 520px) {
+  .game-card__art {
+    height: clamp(208px, 55vw, 248px);
+  }
+
+  .game-card__icon {
+    width: clamp(104px, 29vw, 126px);
+    height: clamp(104px, 29vw, 126px);
+    border-radius: 28px;
+    font-size: clamp(52px, 14vw, 64px);
+  }
+
+  .game-card__body {
+    padding: 15px 16px 14px;
+  }
+
+  .game-card h3 {
+    font-size: 21px;
+  }
+
+  .game-card__subtitle {
+    font-size: 13px;
+  }
 }
 </style>

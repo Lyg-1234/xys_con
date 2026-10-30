@@ -3,7 +3,7 @@
   "private": true,
   "version": "1.0.0",
   "type": "module",
-  "description": "基于 Vue 3 + Vite 的在线小游戏合集，包含俄罗斯方块、找不同、记忆配对、贪吃蛇、2048 与扫雷",
+  "description": "基于 Vue 3 + Vite 的 26 款在线小游戏合集，支持桌面键盘、手机触控与本机成绩保存",
   "scripts": {
     "dev": "vite",
     "build": "vite build",

@@ -1,7 +1,13 @@
 import { existsSync } from 'node:fs'
 import { GAMES } from '../src/data/games.js'
 
-const expected = ['tetris', 'spot-difference', 'memory', 'snake', '2048', 'minesweeper']
+const expected = [
+  'tetris', 'spot-difference', 'memory', 'snake', '2048', 'minesweeper',
+  'tic-tac-toe', 'connect-four', 'lights-out', 'sliding-puzzle', 'number-guess',
+  'math-sprint', 'odd-one-out', 'simon-says', 'word-scramble', 'color-match',
+  'rock-paper-scissors', 'whack-a-mole', 'reaction-test', 'aim-trainer',
+  'typing-rush', 'tap-sequence', 'stack-tower', 'pong', 'breakout', 'sky-dodge'
+]
 const failures = []
 const ids = new Set()
 
@@ -33,6 +39,26 @@ function componentName(id) {
     memory: 'MemoryView',
     snake: 'SnakeView',
     '2048': 'Game2048View',
-    minesweeper: 'MinesweeperView'
+    minesweeper: 'MinesweeperView',
+    'tic-tac-toe': 'PuzzlePackView',
+    'connect-four': 'PuzzlePackView',
+    'lights-out': 'PuzzlePackView',
+    'sliding-puzzle': 'PuzzlePackView',
+    'number-guess': 'PuzzlePackView',
+    'math-sprint': 'PuzzlePackView',
+    'odd-one-out': 'PuzzlePackView',
+    'simon-says': 'PuzzlePackView',
+    'word-scramble': 'PuzzlePackView',
+    'color-match': 'ActionPackView',
+    'rock-paper-scissors': 'ActionPackView',
+    'whack-a-mole': 'ActionPackView',
+    'reaction-test': 'ActionPackView',
+    'aim-trainer': 'ActionPackView',
+    'typing-rush': 'ActionPackView',
+    'tap-sequence': 'ActionPackView',
+    'stack-tower': 'ActionPackView',
+    pong: 'ArcadePackView',
+    breakout: 'ArcadePackView',
+    'sky-dodge': 'ArcadePackView'
   }[id]
 }

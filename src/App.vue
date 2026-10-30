@@ -86,15 +86,20 @@ function randomGame() {
 
 <style scoped>
 .app-shell {
+  width: 100%;
+  max-width: 100%;
   min-height: 100vh;
   display: flex;
   flex-direction: column;
+  overflow-x: clip;
 }
 
 .site-header {
   position: sticky;
   top: 0;
   z-index: 50;
+  width: 100%;
+  max-width: 100%;
   border-bottom: 2px solid var(--ink);
   background: rgba(255, 251, 240, 0.92);
   backdrop-filter: blur(14px);
@@ -105,6 +110,7 @@ function randomGame() {
   align-items: center;
   gap: 30px;
   height: 68px;
+  min-width: 0;
 }
 
 .brand {
@@ -112,6 +118,7 @@ function randomGame() {
   align-items: center;
   gap: 10px;
   flex: none;
+  min-width: 0;
 }
 
 .brand__mark {
@@ -182,7 +189,7 @@ function randomGame() {
   display: inline-flex;
   align-items: center;
   gap: 7px;
-  height: 38px;
+  min-height: 44px;
   margin-left: auto;
   padding: 0 15px;
   border: 2px solid var(--ink);
@@ -200,7 +207,9 @@ function randomGame() {
 }
 
 .site-main {
+  min-width: 0;
   flex: 1;
+  overflow-x: clip;
 }
 
 .site-footer {
@@ -216,6 +225,7 @@ function randomGame() {
   gap: 20px;
   padding-top: 24px;
   padding-bottom: 24px;
+  flex-wrap: wrap;
 }
 
 .site-footer strong,
@@ -268,7 +278,8 @@ function randomGame() {
   }
 
   .random-btn {
-    height: 34px;
+    min-height: 44px;
+    flex: none;
     padding: 0 11px;
   }
 
@@ -311,9 +322,15 @@ function randomGame() {
     display: grid;
     place-items: center;
     gap: 1px;
-    padding: 5px;
+    min-height: 48px;
+    padding: 6px 4px;
     border-radius: 12px;
     color: var(--muted);
+  }
+
+  .mobile-dock__item:focus-visible {
+    outline: 2px solid var(--coral);
+    outline-offset: 1px;
   }
 
   .mobile-dock__item span {
@@ -330,6 +347,26 @@ function randomGame() {
   .mobile-dock__item.router-link-active {
     background: var(--sun);
     color: var(--ink);
+  }
+}
+
+@media (max-width: 380px) {
+  .site-header__inner {
+    gap: 8px;
+  }
+
+  .brand {
+    gap: 7px;
+  }
+
+  .brand__text {
+    font-size: 16px;
+  }
+
+  .random-btn {
+    gap: 4px;
+    padding: 0 9px;
+    font-size: 12px;
   }
 }
 </style>

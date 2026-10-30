@@ -43,7 +43,10 @@
 
 <style scoped>
 .about {
+  width: 100%;
+  min-width: 0;
   padding: 50px 0 80px;
+  overflow-x: clip;
 }
 
 .about__wrap {

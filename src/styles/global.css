@@ -21,15 +21,20 @@
 }
 
 html {
-  min-width: 320px;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  overflow-x: clip;
   scroll-behavior: smooth;
 }
 
 body {
-  min-width: 320px;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
   min-height: 100vh;
   margin: 0;
-  overflow-x: hidden;
+  overflow-x: clip;
   background:
     linear-gradient(rgba(24, 35, 47, 0.035) 1px, transparent 1px),
     linear-gradient(90deg, rgba(24, 35, 47, 0.035) 1px, transparent 1px),
@@ -44,12 +49,16 @@ body {
 }
 
 #app {
+  width: 100%;
+  max-width: 100%;
   min-height: 100vh;
+  overflow-x: clip;
 }
 
 a {
   color: inherit;
   text-decoration: none;
+  touch-action: manipulation;
 }
 
 button,
@@ -64,6 +73,7 @@ button {
   background: none;
   color: inherit;
   cursor: pointer;
+  touch-action: manipulation;
 }
 
 button:disabled {
@@ -84,12 +94,20 @@ h3,
 h4,
 p {
   margin: 0;
+  overflow-wrap: break-word;
 }
 
 img,
-svg {
+svg,
+video,
+canvas {
   display: block;
   max-width: 100%;
+}
+
+img,
+video {
+  height: auto;
 }
 
 ::selection {
@@ -110,6 +128,8 @@ svg {
 
 .container {
   width: min(1180px, calc(100% - 32px));
+  max-width: 100%;
+  min-width: 0;
   margin-inline: auto;
 }
 
@@ -118,7 +138,7 @@ svg {
   align-items: center;
   justify-content: center;
   gap: 7px;
-  min-height: 40px;
+  min-height: 44px;
   padding: 0 17px;
   border: 2px solid var(--ink);
   border-radius: 13px;
@@ -162,7 +182,7 @@ svg {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-height: 33px;
+  min-height: 40px;
   padding: 0 13px;
   border: 1.5px solid var(--ink);
   border-radius: 999px;
@@ -263,7 +283,7 @@ svg {
 
 @media (max-width: 720px) {
   .container {
-    width: min(100% - 22px, 1180px);
+    width: calc(100% - 20px);
   }
 
   .panel {

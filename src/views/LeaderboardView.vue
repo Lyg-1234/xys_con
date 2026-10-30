@@ -47,7 +47,12 @@ function reset() {
           <span>最佳成绩</span>
           <span>最近记录</span>
         </div>
-        <div v-for="(row, index) in rows" :key="row.game.id" class="rank-row">
+        <RouterLink
+          v-for="(row, index) in rows"
+          :key="row.game.id"
+          :to="{ name: 'game', params: { slug: row.game.id } }"
+          class="rank-row"
+        >
           <strong class="rank-row__index">{{ index + 1 }}</strong>
           <div class="rank-row__game">
             <span :style="{ background: row.game.gradient }">{{ row.game.icon }}</span>
@@ -61,10 +66,10 @@ function reset() {
             <span v-for="record in row.records" :key="record.at">{{ record.score }}</span>
             <em v-if="!row.records.length">还没有记录</em>
           </div>
-          <RouterLink :to="{ name: 'game', params: { slug: row.game.id } }" class="rank-row__play">
+          <span class="rank-row__play">
             挑战
-          </RouterLink>
-        </div>
+          </span>
+        </RouterLink>
       </section>
     </div>
   </div>
@@ -72,7 +77,10 @@ function reset() {
 
 <style scoped>
 .leaderboard {
+  width: 100%;
+  min-width: 0;
   padding: 42px 0 72px;
+  overflow-x: clip;
 }
 
 .leaderboard__head {
@@ -100,6 +108,7 @@ function reset() {
   gap: 14px;
   max-width: 760px;
   margin: 34px auto;
+  min-width: 0;
 }
 
 .podium {
@@ -112,6 +121,8 @@ function reset() {
   border-radius: 21px;
   background: var(--paper);
   box-shadow: 5px 5px 0 var(--ink);
+  min-width: 0;
+  text-align: center;
 }
 
 .podium--1 {
@@ -149,6 +160,7 @@ function reset() {
 .podium strong {
   margin-top: 9px;
   font-size: 15px;
+  overflow-wrap: anywhere;
 }
 
 .podium b {
@@ -160,10 +172,12 @@ function reset() {
 .podium small {
   color: var(--muted);
   font-size: 10px;
+  overflow-wrap: anywhere;
 }
 
 .rank-table {
   overflow: hidden;
+  min-width: 0;
 }
 
 .rank-table__head,
@@ -186,6 +200,17 @@ function reset() {
 .rank-row {
   padding: 12px 18px;
   border-bottom: 1px dashed var(--line);
+  transition: background 0.15s ease;
+}
+
+.rank-row:hover,
+.rank-row:focus-visible {
+  background: #fff8d8;
+}
+
+.rank-row:focus-visible {
+  outline: 2px solid var(--coral);
+  outline-offset: -3px;
 }
 
 .rank-row:last-child {
@@ -201,6 +226,11 @@ function reset() {
   display: flex;
   align-items: center;
   gap: 10px;
+  min-width: 0;
+}
+
+.rank-row__game > div {
+  min-width: 0;
 }
 
 .rank-row__game > span {
@@ -216,6 +246,7 @@ function reset() {
 .rank-row__game strong,
 .rank-row__game small {
   display: block;
+  overflow-wrap: anywhere;
 }
 
 .rank-row__game small {
@@ -248,6 +279,11 @@ function reset() {
 }
 
 .rank-row__play {
+  display: grid;
+  place-items: center;
+  min-height: 36px;
+  padding: 0 7px;
+  border-radius: 9px;
   font-size: 12px;
   font-weight: 900;
 }
@@ -298,6 +334,10 @@ function reset() {
     padding: 12px;
   }
 
+  .rank-row__game > span {
+    flex: none;
+  }
+
   .rank-row > b {
     font-size: 15px;
   }
@@ -307,7 +347,11 @@ function reset() {
   }
 
   .rank-row__play {
-    display: none;
+    min-height: 40px;
+    grid-column: 2 / 4;
+    justify-self: stretch;
+    border: 1.5px solid var(--ink);
+    background: var(--sun);
   }
 }
 </style>

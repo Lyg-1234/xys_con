@@ -18,6 +18,8 @@ import { RouterLink } from 'vue-router'
 
 <style scoped>
 .not-found {
+  width: 100%;
+  min-width: 0;
   display: grid;
   place-items: center;
   min-height: 72vh;

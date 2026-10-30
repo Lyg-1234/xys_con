@@ -79,6 +79,7 @@ const games = computed(() => getGamesByCategory(category.value, keyword.value))
   gap: 18px;
   padding: 12px;
   background: #dff9f3;
+  min-width: 0;
 }
 
 .filter-bar__search {
@@ -107,8 +108,16 @@ const games = computed(() => getGamesByCategory(category.value, keyword.value))
 
 .filter-bar__chips {
   display: flex;
+  min-width: 0;
+  max-width: 100%;
   gap: 7px;
   overflow-x: auto;
+  padding: 1px;
+  scrollbar-width: none;
+}
+
+.filter-bar__chips::-webkit-scrollbar {
+  display: none;
 }
 
 .result-count {
@@ -145,7 +154,14 @@ const games = computed(() => getGamesByCategory(category.value, keyword.value))
   }
 
   .games-grid {
-    gap: 12px;
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+}
+
+@media (max-width: 360px) {
+  .filter-bar__chips .chip {
+    flex: none;
   }
 }
 </style>

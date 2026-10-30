@@ -72,11 +72,17 @@ defineProps({
 
 <style scoped>
 .game-page {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
   padding: 18px 0 80px;
+  overflow-x: clip;
 }
 
 .game-page__inner {
+  width: min(1180px, calc(100% - 32px));
   max-width: 1180px;
+  min-width: 0;
 }
 
 .game-crumb {
@@ -86,6 +92,8 @@ defineProps({
   margin-bottom: 16px;
   color: var(--muted);
   font-size: 13px;
+  flex-wrap: wrap;
+  overflow-wrap: anywhere;
 }
 
 .game-crumb a:hover {
@@ -103,12 +111,17 @@ defineProps({
   border-radius: 24px;
   background: var(--paper);
   box-shadow: 6px 6px 0 var(--ink);
+  min-width: 0;
 }
 
 .game-head__identity {
   display: flex;
   align-items: center;
   gap: 16px;
+  min-width: 0;
+}
+
+.game-head__identity > div {
   min-width: 0;
 }
 
@@ -136,6 +149,7 @@ defineProps({
 .game-head h1 {
   font-size: clamp(24px, 4vw, 36px);
   line-height: 1.1;
+  overflow-wrap: anywhere;
 }
 
 .game-head__identity p:last-child {
@@ -148,9 +162,11 @@ defineProps({
   display: flex;
   gap: 8px;
   flex: none;
+  min-width: 0;
 }
 
 .game-stat {
+  min-width: 0;
   min-width: 110px;
   padding: 10px 14px;
   border: 1.5px solid var(--ink);
@@ -170,6 +186,7 @@ defineProps({
   margin-top: 1px;
   font-size: 21px;
   line-height: 1.2;
+  overflow-wrap: anywhere;
 }
 
 .game-stat.is-best {
@@ -189,6 +206,7 @@ defineProps({
   grid-template-columns: minmax(0, 1fr) 280px;
   gap: 20px;
   align-items: start;
+  min-width: 0;
 }
 
 .game-stage {
@@ -210,6 +228,7 @@ defineProps({
   display: flex;
   flex-direction: column;
   gap: 14px;
+  min-width: 0;
 }
 
 .game-panel {
@@ -273,19 +292,25 @@ defineProps({
 }
 
 @media (max-width: 600px) {
+  .game-page__inner {
+    width: calc(100% - 20px);
+  }
+
   .game-page {
     padding-top: 12px;
   }
 
   .game-head {
+    width: 100%;
+    overflow: hidden;
     padding: 16px;
     border-radius: 20px;
     box-shadow: 4px 4px 0 var(--ink);
   }
 
   .game-head__icon {
-    width: 58px;
-    height: 58px;
+    width: 62px;
+    height: 62px;
     border-radius: 17px;
     font-size: 28px;
   }
@@ -296,6 +321,7 @@ defineProps({
   }
 
   .game-stat {
+    min-width: 0;
     padding: 8px 10px;
   }
 
@@ -311,13 +337,18 @@ defineProps({
     min-height: 0;
     width: 100%;
     min-width: 0;
-    padding: 12px;
+    padding: 10px;
     border-radius: 20px;
     box-shadow: 4px 4px 0 var(--ink);
   }
 
   .game-side {
     grid-template-columns: 1fr;
+  }
+
+  .game-panel {
+    min-width: 0;
+    padding: 14px;
   }
 }
 </style>

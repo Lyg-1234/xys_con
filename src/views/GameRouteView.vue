@@ -8,6 +8,9 @@ import MemoryView from '@/views/games/MemoryView.vue'
 import SnakeView from '@/views/games/SnakeView.vue'
 import Game2048View from '@/views/games/Game2048View.vue'
 import MinesweeperView from '@/views/games/MinesweeperView.vue'
+import PuzzlePackView from '@/views/games/PuzzlePackView.vue'
+import ActionPackView from '@/views/games/ActionPackView.vue'
+import ArcadePackView from '@/views/games/ArcadePackView.vue'
 
 const route = useRoute()
 const game = computed(() => getGame(String(route.params.slug || '')))
@@ -17,7 +20,27 @@ const gameComponents = {
   memory: MemoryView,
   snake: SnakeView,
   '2048': Game2048View,
-  minesweeper: MinesweeperView
+  minesweeper: MinesweeperView,
+  'tic-tac-toe': PuzzlePackView,
+  'connect-four': PuzzlePackView,
+  'lights-out': PuzzlePackView,
+  'sliding-puzzle': PuzzlePackView,
+  'number-guess': PuzzlePackView,
+  'math-sprint': PuzzlePackView,
+  'odd-one-out': PuzzlePackView,
+  'simon-says': PuzzlePackView,
+  'word-scramble': PuzzlePackView,
+  'color-match': ActionPackView,
+  'rock-paper-scissors': ActionPackView,
+  'whack-a-mole': ActionPackView,
+  'reaction-test': ActionPackView,
+  'aim-trainer': ActionPackView,
+  'typing-rush': ActionPackView,
+  'tap-sequence': ActionPackView,
+  'stack-tower': ActionPackView,
+  pong: ArcadePackView,
+  breakout: ArcadePackView,
+  'sky-dodge': ArcadePackView
 }
 const currentComponent = computed(() => gameComponents[game.value?.id] || null)
 

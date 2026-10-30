@@ -15,11 +15,11 @@ const THEMES = [
 ]
 
 const DIFFERENCES = [
-  { id: 'sun', label: '太阳位置与颜色', x: 72, y: 44, r: 34 },
-  { id: 'smoke', label: '烟囱冒烟', x: 282, y: 72, r: 31 },
-  { id: 'window', label: '窗户灯光', x: 266, y: 145, r: 28 },
-  { id: 'flowers', label: '花朵数量', x: 118, y: 236, r: 34 },
-  { id: 'balloon', label: '气球颜色', x: 357, y: 117, r: 30 }
+  { id: 'sun', label: '太阳位置与颜色', x: 72, y: 44, r: 38 },
+  { id: 'smoke', label: '烟囱冒烟', x: 282, y: 72, r: 36 },
+  { id: 'window', label: '窗户灯光', x: 266, y: 145, r: 36 },
+  { id: 'flowers', label: '花朵数量', x: 118, y: 236, r: 38 },
+  { id: 'balloon', label: '气球颜色', x: 357, y: 117, r: 37 }
 ]
 
 const { bestFor } = useGameScores()
@@ -284,12 +284,24 @@ onBeforeUnmount(() => {
   }
 
   .spot-grid {
-    gap: 7px;
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+
+  .spot-grid > div > p {
+    margin-bottom: 7px;
+    font-size: 11px;
   }
 
   .spot-result {
     align-items: flex-start;
     flex-wrap: wrap;
+  }
+}
+
+@media (max-width: 360px) {
+  .spot-toolbar {
+    grid-template-columns: 1fr;
   }
 }
 
